@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  # Part 2 can break this repository without a commit landing here: a renamed column
+  # fails the contract, a changed filter moves the fixture's numbers. A weekly run
+  # against Part 2's current default branch finds that out even in a quiet week.
+  schedule:
+    - cron: "0 6 * * 1"
+
+# Nothing in CI has real data. Part 2 carries a synthetic Gold fixture with every
+# trap in it; CI builds Part 2's marts on that fixture and runs this repository on
+# the result (CLAUDE.md §10). GOLD_SNAPSHOT_DIR means the same thing to both
+# repositories — a path relative to Part 2's root — so one setting aims both at it.
+env:
+  GOLD_SNAPSHOT_DIR: tests/fixtures/gold
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: football-data-science
+    steps:
+      # Both repositories are checked out side by side, because every path here is
+      # relative to the sibling (CLAUDE.md §1): ../football-data-analytics.
+      - name: Check out this repository
+        uses: actions/checkout@v4
+        with:
+          path: football-data-science
+
+      # Part 2's default branch, deliberately not pinned: the point is to find out
+      # when Part 2 changes under this repository. If Part 2 is private, add
+      # `token: ${{ secrets.PART2_READ_TOKEN }}` with a read-only fine-grained token.
+      - name: Check out Part 2 beside it
+        uses: actions/checkout@v4
+        with:
+          repository: Fabiohhp/football-data-analytics
+          path: football-data-analytics
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "**/uv.lock"
+
+      - name: Build Part 2's marts on its fixture
+        working-directory: football-data-analytics
+        run: |
+          uv sync
+          uv run dbt build --project-dir dbt --profiles-dir dbt
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Lint (ruff)
+        run: uv run ruff check .
+
+      - name: Format check (black)
+        run: uv run black --check .
+
+      # Includes tests/test_part2_guards.py, which breaks a synthetic Part 2 on
+      # purpose and asserts the build refuses it.
+      - name: Run tests
+        run: uv run pytest -q
+
+      # The on-run-start hooks check Part 2 against contracts/part2_columns.json and
+      # against its fixture's manifest before any model is built; then the features
+      # and their leakage tests run.
+      - name: dbt build (on Part 2's fixture)
+        run: uv run dbt build --project-dir dbt --profiles-dir dbt

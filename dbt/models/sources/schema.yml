@@ -1,0 +1,54 @@
+version: 2
+
+models:
+  - name: src_team_matches
+    description: >
+      **Grain: one row per team per counting match** (two per fixture), from Part 2's
+      `int_team_matches`. Counting means `status IN ('FINISHED', 'AWARDED')` and
+      `football_data_match_id IS NOT NULL` — applied in Part 2, not re-applied here.
+
+      Every value describes the match on its own row, so none of it may be a feature
+      of that match (CLAUDE.md §5, L3). Null xG means the sources did not pair the
+      match, never zero (Part 2 trap 7) — twelve counting matches have none.
+    data_tests:
+      - unique_combination:
+          arguments:
+            columns: [match_key, team_key]
+    columns:
+      - name: match_key
+        data_tests: [not_null]
+      - name: match_date
+        description: A DATE with no kickoff time — "before" always means strictly earlier (L4).
+        data_tests: [not_null]
+      - name: team_key
+        data_tests: [not_null]
+      - name: opponent_key
+        data_tests: [not_null]
+      - name: is_home
+        data_tests: [not_null]
+      - name: goals_for
+        data_tests: [not_null]
+      - name: goals_against
+        data_tests: [not_null]
+      - name: points
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1, 3]
+                quote: false
+
+  - name: src_snapshot
+    description: >
+      **Grain: exactly one row** — the Gold snapshot Part 2's database was built from,
+      copied from its `manifest.json`. `gold_matches` is the count the staleness hook
+      compared against Part 2's `stg_matches` before this build started. Model cards
+      and reports cite this row.
+    columns:
+      - name: exported_at
+        data_tests: [not_null]
+      - name: match_date_min
+        data_tests: [not_null]
+      - name: match_date_max
+        data_tests: [not_null]
+      - name: gold_matches
+        data_tests: [not_null]

@@ -1,0 +1,20 @@
+# DuckDB paths only — there are no secrets here.
+#
+# Part 2's database is ATTACHed READ_ONLY as `part2`: this repository reads Part 2's
+# marts and can never write to them (CLAUDE.md §3, §15). The attach is the
+# guarantee, not good behaviour — an INSERT into part2.* fails inside DuckDB.
+#
+# Both paths resolve from the directory dbt is invoked from, which CLAUDE.md §11
+# fixes as the repository root. PART2_DIR is where Part 2 lives; it defaults to the
+# sibling checkout, and the tests point it at a synthetic Part 2 in a temp directory.
+football_ml:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "{{ env_var('FEATURES_DUCKDB', 'data/features.duckdb') }}"
+      threads: 4
+      attach:
+        - path: "{{ env_var('PART2_DIR', '../football-data-analytics') }}/data/analytics.duckdb"
+          alias: part2
+          read_only: true

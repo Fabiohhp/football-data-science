@@ -1,0 +1,29 @@
+{
+  "_comment": "Every Part 2 column this repository reads, with its DuckDB type. dbt's on-run-start hook (dbt/macros/assert_part2_matches_contract.sql) fails the build if any listed table or column is missing from Part 2's analytics.duckdb or has changed type. Columns Part 2 has and this file does not list are ignored. Adding a column here is how a src_ model is allowed to read it; changing a type here is a deliberate commit that means the models reading it need reviewing.",
+  "tables": {
+    "stg_matches": {
+      "_why": "Row count only, for the staleness check against the snapshot's manifest.json. No column is read.",
+      "columns": []
+    },
+    "int_team_matches": {
+      "_why": "One row per team per counting match — Part 2's foundation for every team metric, with the status and split-fixture filters already applied (Part 2 CLAUDE.md §6). Read by src_team_matches.",
+      "columns": [
+        {"name": "match_key", "type": "BIGINT"},
+        {"name": "match_date", "type": "DATE"},
+        {"name": "season", "type": "VARCHAR"},
+        {"name": "competition_code", "type": "VARCHAR"},
+        {"name": "team_key", "type": "BIGINT"},
+        {"name": "opponent_key", "type": "BIGINT"},
+        {"name": "is_home", "type": "BOOLEAN"},
+        {"name": "goals_for", "type": "SMALLINT"},
+        {"name": "goals_against", "type": "SMALLINT"},
+        {"name": "xg_for", "type": "DOUBLE"},
+        {"name": "xg_against", "type": "DOUBLE"},
+        {"name": "npxg_for", "type": "DOUBLE"},
+        {"name": "npxg_against", "type": "DOUBLE"},
+        {"name": "xpts", "type": "DOUBLE"},
+        {"name": "points", "type": "INTEGER"}
+      ]
+    }
+  }
+}

@@ -1,0 +1,31 @@
+name: football_ml
+version: "0.1.0"
+config-version: 2
+profile: football_ml
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+flags:
+  # Same opt-in as Part 2: generic tests take their arguments under `arguments:`.
+  require_generic_test_arguments_property: true
+
+# Before anything is built, refuse a Part 2 database that has drifted from the
+# column contract or gone stale against its snapshot (CLAUDE.md §4). A failed hook
+# stops the whole build, so no feature is ever computed from the wrong input.
+# The contract is checked first: if stg_matches itself is missing, that is the
+# clearer message.
+on-run-start:
+  - "{{ assert_part2_matches_contract() }}"
+  - "{{ assert_part2_is_current() }}"
+
+models:
+  football_ml:
+    # Tables, not views, everywhere — Part 2's reason (its CLAUDE.md §6). A view
+    # over part2.* would store a reference to an attached database inside
+    # features.duckdb, and break for whoever opens it without the attach. Tables
+    # make features.duckdb a self-contained artifact.
+    +materialized: table

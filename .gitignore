@@ -1,0 +1,30 @@
+# Secrets. Nothing here needs any yet; kept for parity with Parts 1 and 2.
+.env
+
+# Generated data. features.duckdb is rebuilt by `dbt build` from Part 2's database.
+# The directory itself is tracked through .gitkeep: DuckDB will not create a missing
+# parent directory, so without it `dbt build` fails on a fresh clone.
+data/*
+!data/.gitkeep
+
+# Model binaries are rebuilt by train.py; only the model cards are committed
+# (CLAUDE.md §3, §10).
+models/**/*.joblib
+
+# Predictions for display. Gitignored until CLAUDE.md §13 decides on publishing.
+exports/
+
+# dbt working directories.
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+dbt/.user.yml
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+*.egg-info/
