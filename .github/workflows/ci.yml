@@ -30,14 +30,29 @@ jobs:
         with:
           path: football-data-science
 
+      # Part 2 is a private repository, and the workflow's own GITHUB_TOKEN can read
+      # only this one — without a credential the checkout fails with "Repository not
+      # found". PART2_DEPLOY_KEY is the private half of an SSH deploy key added,
+      # read-only, to football-data-analytics: it opens that one repository and
+      # nothing else, and does not expire. Setup is in the README ("CI").
+      - name: Require the Part 2 deploy key
+        env:
+          PART2_DEPLOY_KEY: ${{ secrets.PART2_DEPLOY_KEY }}
+        run: |
+          if [ -z "$PART2_DEPLOY_KEY" ]; then
+            echo "::error::Secret PART2_DEPLOY_KEY is not set, so the private Part 2 repository cannot be checked out. See README.md, section CI."
+            exit 1
+          fi
+        working-directory: .
+
       # Part 2's default branch, deliberately not pinned: the point is to find out
-      # when Part 2 changes under this repository. If Part 2 is private, add
-      # `token: ${{ secrets.PART2_READ_TOKEN }}` with a read-only fine-grained token.
+      # when Part 2 changes under this repository.
       - name: Check out Part 2 beside it
         uses: actions/checkout@v4
         with:
           repository: Fabiohhp/football-data-analytics
           path: football-data-analytics
+          ssh-key: ${{ secrets.PART2_DEPLOY_KEY }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5

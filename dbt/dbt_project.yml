@@ -22,6 +22,16 @@ on-run-start:
   - "{{ assert_part2_matches_contract() }}"
   - "{{ assert_part2_is_current() }}"
 
+vars:
+  # How many earlier matches the rolling form window covers — the same default as
+  # Part 2's mart_team_form, so the two can be compared, but a different window: this
+  # one ends at the match *before* (CLAUDE.md §5, L1).
+  form_window: 5
+
+  # Fewer earlier matches than this, for either side, marks a match `short_history`
+  # (L7). Scores are reported separately for those matches. One full form window.
+  min_history: 5
+
 models:
   football_ml:
     # Tables, not views, everywhere — Part 2's reason (its CLAUDE.md §6). A view

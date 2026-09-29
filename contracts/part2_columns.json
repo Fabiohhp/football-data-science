@@ -6,7 +6,7 @@
       "columns": []
     },
     "int_team_matches": {
-      "_why": "One row per team per counting match — Part 2's foundation for every team metric, with the status and split-fixture filters already applied (Part 2 CLAUDE.md §6). Read by src_team_matches.",
+      "_why": "One row per team per counting match \u2014 Part 2's foundation for every team metric, with the status and split-fixture filters already applied (Part 2 CLAUDE.md §6). Read by src_team_matches.",
       "columns": [
         {"name": "match_key", "type": "BIGINT"},
         {"name": "match_date", "type": "DATE"},
@@ -23,6 +23,21 @@
         {"name": "npxg_against", "type": "DOUBLE"},
         {"name": "xpts", "type": "DOUBLE"},
         {"name": "points", "type": "INTEGER"}
+      ]
+    },
+    "mart_team_season": {
+      "_why": "Previous-season summaries only (CLAUDE.md §5, L2). Read by src_team_season_prior, which re-keys each row by the season it may be used for.",
+      "columns": [
+        {"name": "team_key", "type": "BIGINT"},
+        {"name": "season", "type": "VARCHAR"},
+        {"name": "competition_code", "type": "VARCHAR"},
+        {"name": "played", "type": "BIGINT"},
+        {"name": "points_per_match", "type": "DOUBLE"},
+        {"name": "matches_with_xg", "type": "BIGINT"},
+        {"name": "npxg_for", "type": "DOUBLE"},
+        {"name": "npxg_against", "type": "DOUBLE"},
+        {"name": "is_season_complete", "type": "BOOLEAN"},
+        {"name": "last_match_date", "type": "DATE"}
       ]
     }
   }

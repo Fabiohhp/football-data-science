@@ -1,0 +1,965 @@
+{
+  "model": "match_outcome",
+  "citation": "features built from the Gold snapshot exported 2026-09-20T13:41:36+00:00, matches 2024-08-15 to 2026-09-19 (3,733 matches, 94,034 shots)",
+  "git": {
+    "commit": "a1873333bd77949bcd0811edd8ed07024dcd3f89",
+    "dirty": true
+  },
+  "plan": {
+    "validation_folds": [
+      {
+        "month": "2024-11",
+        "train": 452,
+        "test": 167
+      },
+      {
+        "month": "2024-12",
+        "train": 619,
+        "test": 199
+      },
+      {
+        "month": "2025-01",
+        "train": 818,
+        "test": 185
+      },
+      {
+        "month": "2025-02",
+        "train": 1003,
+        "test": 196
+      },
+      {
+        "month": "2025-03",
+        "train": 1199,
+        "test": 165
+      },
+      {
+        "month": "2025-04",
+        "train": 1364,
+        "test": 203
+      },
+      {
+        "month": "2025-05",
+        "train": 1567,
+        "test": 185
+      }
+    ],
+    "holdout_folds": [
+      {
+        "month": "2025-08",
+        "train": 1752,
+        "test": 126
+      },
+      {
+        "month": "2025-09",
+        "train": 1878,
+        "test": 153
+      },
+      {
+        "month": "2025-10",
+        "train": 2031,
+        "test": 165
+      },
+      {
+        "month": "2025-11",
+        "train": 2196,
+        "test": 188
+      },
+      {
+        "month": "2025-12",
+        "train": 2384,
+        "test": 170
+      },
+      {
+        "month": "2026-01",
+        "train": 2554,
+        "test": 223
+      },
+      {
+        "month": "2026-02",
+        "train": 2777,
+        "test": 193
+      },
+      {
+        "month": "2026-03",
+        "train": 2970,
+        "test": 166
+      },
+      {
+        "month": "2026-04",
+        "train": 3136,
+        "test": 181
+      },
+      {
+        "month": "2026-05",
+        "train": 3317,
+        "test": 187
+      }
+    ],
+    "holdout_season": "2025/26",
+    "excluded_live_seasons": [
+      "2026/27"
+    ]
+  },
+  "features": [
+    "home_matches_of_history",
+    "away_matches_of_history",
+    "home_form_matches",
+    "away_form_matches",
+    "home_form_prior_season_matches",
+    "away_form_prior_season_matches",
+    "home_form_points_per_match",
+    "away_form_points_per_match",
+    "home_form_goals_for",
+    "away_form_goals_for",
+    "home_form_goals_against",
+    "away_form_goals_against",
+    "home_form_understat_matches",
+    "away_form_understat_matches",
+    "home_form_npxg_for",
+    "away_form_npxg_for",
+    "home_form_npxg_against",
+    "away_form_npxg_against",
+    "home_form_xpts",
+    "away_form_xpts",
+    "home_season_matches",
+    "away_season_matches",
+    "home_season_points_per_match",
+    "away_season_points_per_match",
+    "home_season_understat_matches",
+    "away_season_understat_matches",
+    "home_season_npxg_difference",
+    "away_season_npxg_difference",
+    "home_prior_season_matches",
+    "away_prior_season_matches",
+    "home_prior_season_points_per_match",
+    "away_prior_season_points_per_match",
+    "home_prior_season_npxg_difference",
+    "away_prior_season_npxg_difference"
+  ],
+  "validation": {
+    "base_rates": [
+      {
+        "name": "base_rates",
+        "rps": 0.23468,
+        "log_loss": 1.07763,
+        "brier": 0.65291,
+        "n": 1300
+      }
+    ],
+    "elo": [
+      {
+        "name": "elo(k=10)",
+        "rps": 0.20746,
+        "log_loss": 1.00398,
+        "brier": 0.59808,
+        "n": 1300,
+        "k": 10.0
+      },
+      {
+        "name": "elo(k=15)",
+        "rps": 0.20728,
+        "log_loss": 1.00292,
+        "brier": 0.59764,
+        "n": 1300,
+        "k": 15.0
+      },
+      {
+        "name": "elo(k=20)",
+        "rps": 0.20718,
+        "log_loss": 1.00217,
+        "brier": 0.59736,
+        "n": 1300,
+        "k": 20.0
+      },
+      {
+        "name": "elo(k=30)",
+        "rps": 0.20714,
+        "log_loss": 1.00138,
+        "brier": 0.59719,
+        "n": 1300,
+        "k": 30.0
+      },
+      {
+        "name": "elo(k=40)",
+        "rps": 0.20727,
+        "log_loss": 1.00128,
+        "brier": 0.5974,
+        "n": 1300,
+        "k": 40.0
+      }
+    ],
+    "model": [
+      {
+        "name": "logistic(C=0.003)",
+        "rps": 0.20896,
+        "log_loss": 1.00544,
+        "brier": 0.60048,
+        "n": 1300,
+        "candidate": {
+          "family": "logistic",
+          "params": {
+            "C": 0.003
+          }
+        }
+      },
+      {
+        "name": "logistic(C=0.01)",
+        "rps": 0.20605,
+        "log_loss": 0.99775,
+        "brier": 0.5949,
+        "n": 1300,
+        "candidate": {
+          "family": "logistic",
+          "params": {
+            "C": 0.01
+          }
+        }
+      },
+      {
+        "name": "logistic(C=0.03)",
+        "rps": 0.20499,
+        "log_loss": 0.99632,
+        "brier": 0.59347,
+        "n": 1300,
+        "candidate": {
+          "family": "logistic",
+          "params": {
+            "C": 0.03
+          }
+        }
+      },
+      {
+        "name": "logistic(C=0.1)",
+        "rps": 0.20509,
+        "log_loss": 0.99898,
+        "brier": 0.59463,
+        "n": 1300,
+        "candidate": {
+          "family": "logistic",
+          "params": {
+            "C": 0.1
+          }
+        }
+      },
+      {
+        "name": "logistic(C=0.3)",
+        "rps": 0.20579,
+        "log_loss": 1.00325,
+        "brier": 0.59685,
+        "n": 1300,
+        "candidate": {
+          "family": "logistic",
+          "params": {
+            "C": 0.3
+          }
+        }
+      },
+      {
+        "name": "logistic(C=1.0)",
+        "rps": 0.20669,
+        "log_loss": 1.00824,
+        "brier": 0.59937,
+        "n": 1300,
+        "candidate": {
+          "family": "logistic",
+          "params": {
+            "C": 1.0
+          }
+        }
+      },
+      {
+        "name": "boosting(learning_rate=0.05, max_iter=100, max_depth=2)",
+        "rps": 0.20841,
+        "log_loss": 1.01631,
+        "brier": 0.60543,
+        "n": 1300,
+        "candidate": {
+          "family": "boosting",
+          "params": {
+            "learning_rate": 0.05,
+            "max_iter": 100,
+            "max_depth": 2
+          }
+        }
+      },
+      {
+        "name": "boosting(learning_rate=0.05, max_iter=100, max_depth=3)",
+        "rps": 0.21149,
+        "log_loss": 1.03386,
+        "brier": 0.61477,
+        "n": 1300,
+        "candidate": {
+          "family": "boosting",
+          "params": {
+            "learning_rate": 0.05,
+            "max_iter": 100,
+            "max_depth": 3
+          }
+        }
+      },
+      {
+        "name": "boosting(learning_rate=0.05, max_iter=200, max_depth=2)",
+        "rps": 0.21257,
+        "log_loss": 1.03853,
+        "brier": 0.61788,
+        "n": 1300,
+        "candidate": {
+          "family": "boosting",
+          "params": {
+            "learning_rate": 0.05,
+            "max_iter": 200,
+            "max_depth": 2
+          }
+        }
+      },
+      {
+        "name": "boosting(learning_rate=0.05, max_iter=200, max_depth=3)",
+        "rps": 0.21826,
+        "log_loss": 1.07542,
+        "brier": 0.63528,
+        "n": 1300,
+        "candidate": {
+          "family": "boosting",
+          "params": {
+            "learning_rate": 0.05,
+            "max_iter": 200,
+            "max_depth": 3
+          }
+        }
+      }
+    ]
+  },
+  "selected": {
+    "elo": {
+      "k": 30.0,
+      "home_advantage": 60.0,
+      "initial": 1500.0,
+      "promoted_from_bottom": 3
+    },
+    "model": {
+      "family": "logistic",
+      "params": {
+        "C": 0.03
+      },
+      "name": "logistic(C=0.03)"
+    }
+  },
+  "holdout": {
+    "season": "2025/26",
+    "n": 1752,
+    "scores": {
+      "base_rates": {
+        "rps": 0.22927,
+        "log_loss": 1.07309,
+        "brier": 0.64888,
+        "n": 1752
+      },
+      "elo": {
+        "rps": 0.20761,
+        "log_loss": 1.01031,
+        "brier": 0.60464,
+        "n": 1752
+      },
+      "model": {
+        "rps": 0.2091,
+        "log_loss": 1.0225,
+        "brier": 0.61049,
+        "n": 1752
+      }
+    },
+    "comparisons": [
+      {
+        "metric": "rps",
+        "candidate": "model",
+        "reference": "elo",
+        "value": 0.00149,
+        "low": -0.00305,
+        "high": 0.00582,
+        "n": 1752,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "verdict": "cannot be distinguished"
+      },
+      {
+        "metric": "log_loss",
+        "candidate": "model",
+        "reference": "elo",
+        "value": 0.01219,
+        "low": -0.00398,
+        "high": 0.02796,
+        "n": 1752,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "verdict": "cannot be distinguished"
+      },
+      {
+        "metric": "rps",
+        "candidate": "model",
+        "reference": "base_rates",
+        "value": -0.02017,
+        "low": -0.02721,
+        "high": -0.013,
+        "n": 1752,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "verdict": "model is better"
+      },
+      {
+        "metric": "log_loss",
+        "candidate": "model",
+        "reference": "base_rates",
+        "value": -0.05059,
+        "low": -0.07366,
+        "high": -0.0269,
+        "n": 1752,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "verdict": "model is better"
+      },
+      {
+        "metric": "rps",
+        "candidate": "elo",
+        "reference": "base_rates",
+        "value": -0.02166,
+        "low": -0.02876,
+        "high": -0.01458,
+        "n": 1752,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "verdict": "elo is better"
+      },
+      {
+        "metric": "log_loss",
+        "candidate": "elo",
+        "reference": "base_rates",
+        "value": -0.06278,
+        "low": -0.08467,
+        "high": -0.04101,
+        "n": 1752,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "verdict": "elo is better"
+      }
+    ],
+    "by_history": {
+      "short_history": {
+        "base_rates": {
+          "rps": 0.22205,
+          "log_loss": 1.06377,
+          "brier": 0.64233,
+          "n": 65
+        },
+        "elo": {
+          "rps": 0.21429,
+          "log_loss": 1.04498,
+          "brier": 0.63425,
+          "n": 65
+        },
+        "model": {
+          "rps": 0.19685,
+          "log_loss": 0.99056,
+          "brier": 0.59274,
+          "n": 65
+        }
+      },
+      "full_history": {
+        "base_rates": {
+          "rps": 0.22954,
+          "log_loss": 1.07345,
+          "brier": 0.64914,
+          "n": 1687
+        },
+        "elo": {
+          "rps": 0.20735,
+          "log_loss": 1.00897,
+          "brier": 0.6035,
+          "n": 1687
+        },
+        "model": {
+          "rps": 0.20957,
+          "log_loss": 1.02373,
+          "brier": 0.61118,
+          "n": 1687
+        }
+      }
+    },
+    "draws": {
+      "base_rates": {
+        "actual_draw_rate": 0.25457,
+        "mean_predicted_draw": 0.24924,
+        "draw_most_likely_share": 0.0
+      },
+      "elo": {
+        "actual_draw_rate": 0.25457,
+        "mean_predicted_draw": 0.23242,
+        "draw_most_likely_share": 0.0
+      },
+      "model": {
+        "actual_draw_rate": 0.25457,
+        "mean_predicted_draw": 0.24064,
+        "draw_most_likely_share": 0.06564
+      }
+    },
+    "calibration": {
+      "base_rates": [
+        {
+          "outcome": "H",
+          "bin_low": 0.3,
+          "bin_high": 0.4,
+          "n": 488,
+          "mean_predicted": 0.39355,
+          "observed_rate": 0.40164
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.4,
+          "bin_high": 0.5,
+          "n": 1264,
+          "mean_predicted": 0.44218,
+          "observed_rate": 0.45491
+        },
+        {
+          "outcome": "D",
+          "bin_low": 0.1,
+          "bin_high": 0.2,
+          "n": 63,
+          "mean_predicted": 0.19507,
+          "observed_rate": 0.30159
+        },
+        {
+          "outcome": "D",
+          "bin_low": 0.2,
+          "bin_high": 0.3,
+          "n": 1689,
+          "mean_predicted": 0.25126,
+          "observed_rate": 0.25281
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.2,
+          "bin_high": 0.3,
+          "n": 380,
+          "mean_predicted": 0.29098,
+          "observed_rate": 0.26579
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.3,
+          "bin_high": 0.4,
+          "n": 1372,
+          "mean_predicted": 0.33076,
+          "observed_rate": 0.31633
+        }
+      ],
+      "elo": [
+        {
+          "outcome": "H",
+          "bin_low": 0.0,
+          "bin_high": 0.1,
+          "n": 40,
+          "mean_predicted": 0.07491,
+          "observed_rate": 0.125
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.1,
+          "bin_high": 0.2,
+          "n": 221,
+          "mean_predicted": 0.15043,
+          "observed_rate": 0.19457
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.2,
+          "bin_high": 0.3,
+          "n": 274,
+          "mean_predicted": 0.25164,
+          "observed_rate": 0.29927
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.3,
+          "bin_high": 0.4,
+          "n": 288,
+          "mean_predicted": 0.3503,
+          "observed_rate": 0.40278
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.4,
+          "bin_high": 0.5,
+          "n": 277,
+          "mean_predicted": 0.44992,
+          "observed_rate": 0.48014
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.5,
+          "bin_high": 0.6,
+          "n": 235,
+          "mean_predicted": 0.54951,
+          "observed_rate": 0.50213
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.6,
+          "bin_high": 0.7,
+          "n": 212,
+          "mean_predicted": 0.64609,
+          "observed_rate": 0.58962
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.7,
+          "bin_high": 0.8,
+          "n": 134,
+          "mean_predicted": 0.74744,
+          "observed_rate": 0.69403
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.8,
+          "bin_high": 0.9,
+          "n": 66,
+          "mean_predicted": 0.83977,
+          "observed_rate": 0.80303
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.9,
+          "bin_high": 1.0,
+          "n": 5,
+          "mean_predicted": 0.9107,
+          "observed_rate": 0.6
+        },
+        {
+          "outcome": "D",
+          "bin_low": 0.0,
+          "bin_high": 0.1,
+          "n": 39,
+          "mean_predicted": 0.08336,
+          "observed_rate": 0.12821
+        },
+        {
+          "outcome": "D",
+          "bin_low": 0.1,
+          "bin_high": 0.2,
+          "n": 358,
+          "mean_predicted": 0.16241,
+          "observed_rate": 0.19832
+        },
+        {
+          "outcome": "D",
+          "bin_low": 0.2,
+          "bin_high": 0.3,
+          "n": 1355,
+          "mean_predicted": 0.2552,
+          "observed_rate": 0.27306
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.0,
+          "bin_high": 0.1,
+          "n": 148,
+          "mean_predicted": 0.07198,
+          "observed_rate": 0.08784
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.1,
+          "bin_high": 0.2,
+          "n": 360,
+          "mean_predicted": 0.15147,
+          "observed_rate": 0.17222
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.2,
+          "bin_high": 0.3,
+          "n": 350,
+          "mean_predicted": 0.24806,
+          "observed_rate": 0.24286
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.3,
+          "bin_high": 0.4,
+          "n": 312,
+          "mean_predicted": 0.35022,
+          "observed_rate": 0.30769
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.4,
+          "bin_high": 0.5,
+          "n": 219,
+          "mean_predicted": 0.45115,
+          "observed_rate": 0.38813
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.5,
+          "bin_high": 0.6,
+          "n": 156,
+          "mean_predicted": 0.54401,
+          "observed_rate": 0.48718
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.6,
+          "bin_high": 0.7,
+          "n": 126,
+          "mean_predicted": 0.64754,
+          "observed_rate": 0.51587
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.7,
+          "bin_high": 0.8,
+          "n": 62,
+          "mean_predicted": 0.73366,
+          "observed_rate": 0.59677
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.8,
+          "bin_high": 0.9,
+          "n": 19,
+          "mean_predicted": 0.83381,
+          "observed_rate": 0.84211
+        }
+      ],
+      "model": [
+        {
+          "outcome": "H",
+          "bin_low": 0.0,
+          "bin_high": 0.1,
+          "n": 45,
+          "mean_predicted": 0.06767,
+          "observed_rate": 0.17778
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.1,
+          "bin_high": 0.2,
+          "n": 215,
+          "mean_predicted": 0.15725,
+          "observed_rate": 0.2
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.2,
+          "bin_high": 0.3,
+          "n": 308,
+          "mean_predicted": 0.25093,
+          "observed_rate": 0.31818
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.3,
+          "bin_high": 0.4,
+          "n": 314,
+          "mean_predicted": 0.35187,
+          "observed_rate": 0.41083
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.4,
+          "bin_high": 0.5,
+          "n": 255,
+          "mean_predicted": 0.44912,
+          "observed_rate": 0.45098
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.5,
+          "bin_high": 0.6,
+          "n": 211,
+          "mean_predicted": 0.55121,
+          "observed_rate": 0.50237
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.6,
+          "bin_high": 0.7,
+          "n": 174,
+          "mean_predicted": 0.64882,
+          "observed_rate": 0.58046
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.7,
+          "bin_high": 0.8,
+          "n": 119,
+          "mean_predicted": 0.74747,
+          "observed_rate": 0.69748
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.8,
+          "bin_high": 0.9,
+          "n": 78,
+          "mean_predicted": 0.84645,
+          "observed_rate": 0.76923
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.9,
+          "bin_high": 1.0,
+          "n": 33,
+          "mean_predicted": 0.92928,
+          "observed_rate": 0.84848
+        },
+        {
+          "outcome": "D",
+          "bin_low": 0.0,
+          "bin_high": 0.1,
+          "n": 98,
+          "mean_predicted": 0.06925,
+          "observed_rate": 0.17347
+        },
+        {
+          "outcome": "D",
+          "bin_low": 0.1,
+          "bin_high": 0.2,
+          "n": 429,
+          "mean_predicted": 0.16223,
+          "observed_rate": 0.20979
+        },
+        {
+          "outcome": "D",
+          "bin_low": 0.2,
+          "bin_high": 0.3,
+          "n": 847,
+          "mean_predicted": 0.24702,
+          "observed_rate": 0.27863
+        },
+        {
+          "outcome": "D",
+          "bin_low": 0.3,
+          "bin_high": 0.4,
+          "n": 304,
+          "mean_predicted": 0.33667,
+          "observed_rate": 0.26974
+        },
+        {
+          "outcome": "D",
+          "bin_low": 0.4,
+          "bin_high": 0.5,
+          "n": 62,
+          "mean_predicted": 0.43586,
+          "observed_rate": 0.25806
+        },
+        {
+          "outcome": "D",
+          "bin_low": 0.5,
+          "bin_high": 0.6,
+          "n": 10,
+          "mean_predicted": 0.53988,
+          "observed_rate": 0.5
+        },
+        {
+          "outcome": "D",
+          "bin_low": 0.6,
+          "bin_high": 0.7,
+          "n": 2,
+          "mean_predicted": 0.61215,
+          "observed_rate": 0.0
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.0,
+          "bin_high": 0.1,
+          "n": 192,
+          "mean_predicted": 0.05945,
+          "observed_rate": 0.07812
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.1,
+          "bin_high": 0.2,
+          "n": 299,
+          "mean_predicted": 0.15196,
+          "observed_rate": 0.19064
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.2,
+          "bin_high": 0.3,
+          "n": 329,
+          "mean_predicted": 0.24981,
+          "observed_rate": 0.26444
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.3,
+          "bin_high": 0.4,
+          "n": 341,
+          "mean_predicted": 0.34828,
+          "observed_rate": 0.31378
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.4,
+          "bin_high": 0.5,
+          "n": 253,
+          "mean_predicted": 0.44607,
+          "observed_rate": 0.37154
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.5,
+          "bin_high": 0.6,
+          "n": 186,
+          "mean_predicted": 0.54484,
+          "observed_rate": 0.46237
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.6,
+          "bin_high": 0.7,
+          "n": 97,
+          "mean_predicted": 0.63954,
+          "observed_rate": 0.52577
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.7,
+          "bin_high": 0.8,
+          "n": 40,
+          "mean_predicted": 0.73965,
+          "observed_rate": 0.675
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.8,
+          "bin_high": 0.9,
+          "n": 14,
+          "mean_predicted": 0.84667,
+          "observed_rate": 0.71429
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.9,
+          "bin_high": 1.0,
+          "n": 1,
+          "mean_predicted": 0.93339,
+          "observed_rate": 1.0
+        }
+      ]
+    }
+  },
+  "holdout_evaluations": [
+    {
+      "fingerprint": "bc3f81c33cf5b7df",
+      "git_commit": "a1873333bd77949bcd0811edd8ed07024dcd3f89",
+      "date": "2026-09-29"
+    }
+  ]
+}

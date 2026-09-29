@@ -34,7 +34,7 @@ portfolio/football-data/
 |-------|-------|-------|--------|
 | Part 1 — Data Engineering & Architecture | Ingestion, Airflow, Bronze/Silver/Gold, data quality | `../football-data-engineering` | Complete |
 | Part 2 — Analytics & BI | Metrics layer, analyses, dashboard | `../football-data-analytics` | Complete |
-| **Part 3 — Machine Learning** | Match outcome and xG models, evaluation | **this repository** | **Phase 0 of 6 — skeleton built** |
+| **Part 3 — Machine Learning** | Match outcome and xG models, evaluation | **this repository** | **Phases 0–2 of 6 — features, baselines, model #1** |
 
 **The deliverable is a model a reviewer can trust the score of** — not the
 highest score. The audience is someone hiring for data science or ML: they will
@@ -52,7 +52,7 @@ feature pipelines, model selection, xG models built from `fact_shots` — is her
 
 ## 2. Status, and what this repository inherits
 
-**Only the input side is built (phase 0, §12)** — no feature and no model yet. The data is: Part 1's Gold holds three big-5 seasons
+**Model #1 and its baselines are built (phases 0–2, §12); models #2–#4 are not.** The data is: Part 1's Gold holds three big-5 seasons
 (2024/25 and 2025/26 complete, 2026/27 in progress — about 3,700 matches and
 94,000 shots as of 2026-09), and Part 2's metrics layer builds on it with 131
 passing dbt tests. Treat those counts as a reading; the authority is the
@@ -251,8 +251,12 @@ calibration **per class**, and the predicted draw rate against the actual one.
 - **Every feature row lists the latest input date it used**, as
   `max_input_date`, and **`assert_no_feature_reads_the_future`** fails on any row
   where `max_input_date >= as_of_date`. This is the one test the whole
-  repository rests on. Break it on purpose once (drop the shift from a rolling
-  window) to confirm it fails, and record that in §12.
+  repository rests on. It is a **generic test attached to each `feat_` model** —
+  not one singular test over all of them, which `dbt build` skips whenever another
+  test upstream fails first (§12, phase 1) — and
+  `assert_every_feature_model_is_leakage_tested` fails any `feat_` model without it.
+  `tests/test_leakage.py` breaks the features on purpose on every run (L1 and L2)
+  and asserts this test, by name, is what fails.
 - **Rolling windows never cross a season boundary silently.** Either the window
   resets each season (as Part 2's form chart does) or carries over and says so in
   a column; the choice is per feature, stated in `schema.yml`.
@@ -364,7 +368,8 @@ football-data-science/
 │   ├── models/
 │   │   ├── sources/           # src_* — select/rename over Part 2's models
 │   │   └── features/          # feat_match_outcome, feat_shots, feat_player_next_season
-│   └── tests/                 # assert_no_feature_reads_the_future, grain tests
+│   └── tests/                 # leakage-test coverage, recomputation, grain tests
+│                              #   (the leakage test itself is a generic in macros/)
 ├── src/football_ml/
 │   ├── data.py                # opens features.duckdb; staleness check; .citation()
 │   ├── splits.py              # walk-forward splits — the only place a split is made
@@ -397,8 +402,8 @@ data, and a change in Part 2 that breaks this repository shows up here.
 
 ## 11. Common Commands
 
-> Everything from `train` down is **not built yet** (phases 1–5). If a command
-> fails because it is not built, say so instead of inventing output.
+> `export_predictions.py` and the notebooks are **not built yet** (phases 3–5). If a
+> command fails because it is not built, say so instead of inventing output.
 >
 > Paths: `PART2_DIR` (default `../football-data-analytics`) locates Part 2;
 > `FEATURES_DUCKDB` (default `data/features.duckdb`) is this repository's database;
@@ -417,7 +422,10 @@ uv run black --check .
 (cd ../football-data-analytics && uv run dbt build --project-dir dbt --profiles-dir dbt)
 
 uv run dbt build --project-dir dbt --profiles-dir dbt     # features + leakage tests
-uv run python -m football_ml.train match_outcome          # fit, card, report
+uv run python -m football_ml.train match_outcome --validation-only  # develop here:
+                                                          #   the hold-out is untouched
+uv run python -m football_ml.train match_outcome          # fit, card, report — scores the
+                                                          #   hold-out; the ledger counts it
 uv run python scripts/export_predictions.py
 uv run jupyter lab
 ```
@@ -431,9 +439,9 @@ the next.
 
 | Phase | Deliverable | Done when |
 |-------|-------------|-----------|
-| 0 ◐ | Repo skeleton, READ_ONLY attach of Part 2, column contract, CI on Part 2's fixture | CI builds Part 2 on the fixture and this repository's empty dbt project on top of it — **passes locally; not yet run on GitHub** |
-| 1 | `feat_match_outcome`, walk-forward splits, `assert_no_feature_reads_the_future` | The test passes, and fails when a window's shift is removed on purpose |
-| 2 | Baselines + model #1, `evaluate.py`, first report | RPS for base rates, Elo and the model, with paired intervals |
+| 0 ◐ | Repo skeleton, READ_ONLY attach of Part 2, column contract, CI on Part 2's fixture | CI builds Part 2 on the fixture and this repository's empty dbt project on top of it — **passes locally; pushed, GitHub result not yet confirmed** |
+| 1 ✅ | `feat_match_outcome`, walk-forward splits, `assert_no_feature_reads_the_future` | The test passes, and fails when a window's shift is removed on purpose |
+| 2 ✅ | Baselines + model #1, `evaluate.py`, first report | RPS for base rates, Elo and the model, with paired intervals |
 | 3 | Model #2 (Dixon-Coles on goals and on xG) | Compared with #1 on the same splits |
 | 4 | Model #3 (xG) against Understat's | Calibration plot and log loss beside Understat's, with the L10 gap stated |
 | 5 | Prospective scoring on the next snapshot, predictions page in Part 2's dashboard | A frozen model scored on matches played after it was frozen |
@@ -461,6 +469,69 @@ with an offset as a naive `TIMESTAMP` and drops the offset**, so casting it to
 `timestamptz` afterwards reads it as local time — `exported_at` came out three hours
 wrong in UTC-3 and would have been right in CI, which runs in UTC. `src_snapshot`
 extracts the raw string with `->>` and casts that. Read timestamps from JSON that way.
+
+**What phase 1 established.** `feat_team_form` (team × match) and `feat_match_outcome`
+(one row per counting match, 17 features per side as `home_`/`away_` pairs from one
+macro) are built from `src_team_matches` and `src_team_season_prior` — Part 2's
+`mart_team_season` re-keyed by `applies_to_season`, so the only easy join is the L2-safe
+one. Form carries over seasons (with `form_prior_season_matches`); season-to-date resets;
+nothing is imputed. On the real snapshot: the 48 matches of 2024/25's opening round have
+no input at all; 85% of 2025/26 home sides have a prior season (the rest were promoted);
+the smallest gap between a feature's latest input and its match is 3 days.
+
+The leakage test was broken on purpose, and **the first version failed to fail.** With the
+form window ending at `current row` (L1), `dbt build` failed — but on
+`assert_form_matches_a_direct_recomputation`, and the leakage test was never run: it was
+a singular test reading both `feat_` models, and `dbt build` skips everything downstream
+of a failing test, so `feat_match_outcome` was never built. A leak elsewhere, with no
+second test beside it, could have passed a build that skipped the one test meant to catch
+it. It is now a generic test on each `feat_` model, and `tests/test_leakage.py` asserts
+**`FAIL … assert_no_feature_reads_the_future_feat_team_form`** for both leaks (L1: 4
+rows; L2, the season summary joined on the current season: 4 rows), plus that a new
+`feat_` model without the test fails the build. Those run on every `pytest`.
+
+Splits (`splits.py`): validation is monthly walk-forward from November 2024 (three months
+of burn-in) to May 2025 — 7 folds, 1,300 matches; the hold-out is 2025/26, the latest
+season in which every league played `clubs × (clubs − 1)` matches — 10 folds, 1,752
+matches; 2026/27 is in no fold.
+
+**What phase 2 established.** Model #1 does **not** beat Elo. On the 2025/26 hold-out:
+
+| | RPS | log loss | Brier |
+|---|---|---|---|
+| league base rates | 0.2293 | 1.0731 | 0.6489 |
+| Elo (k = 30, ordered logit) | **0.2076** | **1.0103** | **0.6046** |
+| model #1, `logistic(C=0.03)` | 0.2091 | 1.0225 | 0.6105 |
+
+Model − Elo, RPS: **+0.0015 [−0.0030, +0.0058]** — cannot be distinguished, and the point
+estimate favours Elo. Both beat base rates clearly (model −0.0202 [−0.0272, −0.0130],
+Elo −0.0217 [−0.0288, −0.0146]). This is Part 2's question 1 again, from the predictive
+side: form, xG and xPTS over the last five matches add nothing measurable to a rating
+that has absorbed every result since August 2024.
+
+Settings were chosen on validation only (`--validation-only` runs that and stops), then
+the hold-out was scored once; `reports/match_outcome.json` carries a ledger of hold-out
+evaluations keyed by a fingerprint of the settings, features and folds. A re-run with
+nothing changed reproduced the report exactly and left the ledger at 1.
+
+Worth knowing before building on it:
+
+- **Both Elo and the model are overconfident at the extremes.** Where they give an away
+  win 60–70%, it happens 52% of the time; the favourite wins less often in 2025/26 than
+  either promised. A calibration step (or a less extreme Elo `k`) is the obvious lever,
+  and must be chosen on validation.
+- **Draws (L11):** actual rate 25.5%; base rates and Elo never make a draw the most likely
+  outcome, and the model does in 6.6% of matches — but where it says 40–50% draw, 26%
+  are draws. Its draw picks are wrong.
+- **Short history (L7):** in the 65 hold-out matches where a side had fewer than
+  `min_history` earlier matches (promoted clubs, early season), the model scores 0.197
+  against Elo's 0.214. Sixty-five matches and no interval: a direction, not a finding.
+- **Histogram boosting lost to the logistic regression** on validation, getting worse with
+  every step of depth or iterations — ~1,300–1,750 training matches are too few for it.
+- Two practical traps: DuckDB's nullable integers reach pandas as `Int64` with `pd.NA`,
+  which scikit-learn refuses (the model casts to `float64`, so missing stays `NaN`); and
+  `prior_season_*` is empty for every row of 2024/25, which histogram boosting cannot bin
+  — `DropEmptyColumns` drops a column with no value in the *training fold*.
 
 ---
 

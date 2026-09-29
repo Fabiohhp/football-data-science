@@ -13,6 +13,16 @@ dependencies = [
     "duckdb>=1.5,<1.6",
     "dbt-core>=1.12",
     "dbt-duckdb>=1.11",
+    # Phase 1: splits and the feature loader.
+    "numpy>=2.0",
+    "pandas>=2.2",
+    # Phase 2: baselines, model #1, evaluation (CLAUDE.md §3). HistGradientBoosting
+    # is in scikit-learn, so no XGBoost/LightGBM; statsmodels carries the ordered
+    # logit that turns an Elo difference into H/D/A probabilities.
+    "scikit-learn>=1.5",
+    "statsmodels>=0.14",
+    "scipy>=1.14",
+    "joblib>=1.4",
 ]
 
 [project.optional-dependencies]

@@ -23,3 +23,8 @@ sources:
         description: One row per team per counting match — two rows per fixture.
       - name: stg_matches
         description: 1:1 with Gold's fact_matches. Read only for its row count, by the staleness hook.
+      - name: mart_team_season
+        description: >
+          One row per team × season × competition — a summary of the **whole** season.
+          Read only through src_team_season_prior, as the previous season's summary
+          (CLAUDE.md §5, L2); never joined on the current season.

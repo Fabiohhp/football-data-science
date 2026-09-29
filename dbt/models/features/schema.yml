@@ -1,0 +1,65 @@
+version: 2
+
+models:
+  - name: feat_team_form
+    description: >
+      **Grain: one row per team per counting match. As-of: `as_of_date` = match_date.**
+      What was known about the team before the match. Every input is from a strictly
+      earlier date, tested by `assert_no_feature_reads_the_future` on `max_input_date`.
+
+      Windows: `form_*` covers the last `form_window` matches and **carries over**
+      season boundaries (`form_prior_season_matches` counts the carried ones);
+      `season_*` is season to date and **resets**; `prior_season_*` is last season's
+      summary in the same competition, from Part 2's `mart_team_season` (L2).
+      Nothing is imputed: no history is null, never zero (L7).
+    data_tests:
+      - assert_no_feature_reads_the_future
+      - unique_combination:
+          arguments:
+            columns: [match_key, team_key]
+    columns:
+      - name: as_of_date
+        description: The match date. Every input is strictly earlier (L4).
+        data_tests: [not_null]
+      - name: max_input_date
+        description: Latest date any input on the row came from; null only when there is none.
+      - name: matches_of_history
+        description: >
+          Earlier counting matches for this club in the loaded range — which starts in
+          August 2024, so it counts from there, not from the club's real history.
+        data_tests: [not_null]
+      - name: form_matches
+        description: Matches in the form window, up to `form_window`.
+        data_tests: [not_null]
+      - name: form_understat_matches
+        description: Matches in the form window that have xG — the coverage of form_npxg_* and form_xpts.
+        data_tests: [not_null]
+      - name: form_prior_season_matches
+        description: How many of the form window's matches come from an earlier season.
+        data_tests: [not_null]
+      - name: prior_season_matches
+        description: Matches in last season's summary; null when the club was not in this league last season.
+
+  - name: feat_match_outcome
+    description: >
+      **Grain: one row per counting match. As-of: `as_of_date` = match_date.**
+      Every feature of feat_team_form for both sides, as `home_*` / `away_*` pairs built
+      by one macro, plus `short_history` (either side has fewer than `min_history`
+      earlier matches, L7). The target — `home_goals`, `away_goals`, `result` — describes
+      the match itself and is never an input (L3).
+    data_tests:
+      - assert_no_feature_reads_the_future
+    columns:
+      - name: match_key
+        data_tests: [unique, not_null]
+      - name: as_of_date
+        data_tests: [not_null]
+      - name: result
+        description: H, D or A from the home side's view — the order the ranked probability score uses.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: [H, D, A]
+      - name: short_history
+        data_tests: [not_null]
