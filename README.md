@@ -61,10 +61,15 @@ export GOLD_SNAPSHOT_DIR=tests/fixtures/gold   # relative to Part 2's root, in b
 
 ## CI
 
-CI checks out Part 2 beside this repository, builds Part 2's marts on its synthetic
-fixture, then runs lint, tests and `dbt build` here. Part 2 is private, so CI reads it
-with a **deploy key**: an SSH key that can read that one repository and nothing else.
-To set it up once:
+Two jobs. **`build`** needs nothing outside this repository. It generates a synthetic
+Part 2 from the column contract (`tests/synthetic_part2.py`), then runs lint, tests
+and `dbt build` on top of it. **`part2-integration`** checks out the real Part 2
+beside this repository, builds Part 2's marts on Part 2's own fixture, and runs
+`dbt build` here. That catches a Part 2 change that would break this repository.
+
+Part 2 is private, so the second job reads it with a **deploy key**: an SSH key that
+can read that one repository and nothing else. Without the key, the job reports that it
+was skipped and passes. To set it up once:
 
 ```bash
 ssh-keygen -t ed25519 -N "" -C "football-data-science CI" -f part2_deploy_key

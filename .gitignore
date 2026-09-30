@@ -14,6 +14,9 @@ models/**/*.joblib
 # Predictions for display. Gitignored until CLAUDE.md §13 decides on publishing.
 exports/
 
+# The synthetic Part 2 that CI generates (tests/synthetic_part2.py).
+.synthetic-part2/
+
 # dbt working directories.
 dbt/target/
 dbt/dbt_packages/

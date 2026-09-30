@@ -3,68 +3,28 @@ name: CI
 on:
   push:
   pull_request:
-  # Part 2 can break this repository without a commit landing here: a renamed column
-  # fails the contract, a changed filter moves the fixture's numbers. A weekly run
-  # against Part 2's current default branch finds that out even in a quiet week.
+  # A weekly run, so the part2-integration job notices a Part 2 change even in a week
+  # with no commits here.
   schedule:
     - cron: "0 6 * * 1"
 
-# Nothing in CI has real data. Part 2 carries a synthetic Gold fixture with every
-# trap in it; CI builds Part 2's marts on that fixture and runs this repository on
-# the result (CLAUDE.md §10). GOLD_SNAPSHOT_DIR means the same thing to both
-# repositories — a path relative to Part 2's root — so one setting aims both at it.
-env:
-  GOLD_SNAPSHOT_DIR: tests/fixtures/gold
-
 jobs:
+  # Self-contained: needs nothing outside this repository. This repository's input is
+  # Part 2's analytics.duckdb, which is built from real data and never committed, so
+  # CI generates a stand-in from contracts/part2_columns.json with
+  # tests/synthetic_part2.py — the same generator the tests use — and builds the
+  # features, and every leakage test, on top of it.
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: football-data-science
+    env:
+      PART2_DIR: ${{ github.workspace }}/.synthetic-part2
     steps:
-      # Both repositories are checked out side by side, because every path here is
-      # relative to the sibling (CLAUDE.md §1): ../football-data-analytics.
-      - name: Check out this repository
-        uses: actions/checkout@v4
-        with:
-          path: football-data-science
-
-      # Part 2 is a private repository, and the workflow's own GITHUB_TOKEN can read
-      # only this one — without a credential the checkout fails with "Repository not
-      # found". PART2_DEPLOY_KEY is the private half of an SSH deploy key added,
-      # read-only, to football-data-analytics: it opens that one repository and
-      # nothing else, and does not expire. Setup is in the README ("CI").
-      - name: Require the Part 2 deploy key
-        env:
-          PART2_DEPLOY_KEY: ${{ secrets.PART2_DEPLOY_KEY }}
-        run: |
-          if [ -z "$PART2_DEPLOY_KEY" ]; then
-            echo "::error::Secret PART2_DEPLOY_KEY is not set, so the private Part 2 repository cannot be checked out. See README.md, section CI."
-            exit 1
-          fi
-        working-directory: .
-
-      # Part 2's default branch, deliberately not pinned: the point is to find out
-      # when Part 2 changes under this repository.
-      - name: Check out Part 2 beside it
-        uses: actions/checkout@v4
-        with:
-          repository: Fabiohhp/football-data-analytics
-          path: football-data-analytics
-          ssh-key: ${{ secrets.PART2_DEPLOY_KEY }}
+      - uses: actions/checkout@v4
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          cache-dependency-glob: "**/uv.lock"
-
-      - name: Build Part 2's marts on its fixture
-        working-directory: football-data-analytics
-        run: |
-          uv sync
-          uv run dbt build --project-dir dbt --profiles-dir dbt
 
       - name: Install dependencies
         run: uv sync --extra dev
@@ -75,13 +35,81 @@ jobs:
       - name: Format check (black)
         run: uv run black --check .
 
-      # Includes tests/test_part2_guards.py, which breaks a synthetic Part 2 on
-      # purpose and asserts the build refuses it.
+      # Includes the tests that break things on purpose: a stale or drifted Part 2
+      # (test_part2_guards.py) and planted L1/L2 leaks (test_leakage.py).
       - name: Run tests
         run: uv run pytest -q
 
-      # The on-run-start hooks check Part 2 against contracts/part2_columns.json and
-      # against its fixture's manifest before any model is built; then the features
-      # and their leakage tests run.
-      - name: dbt build (on Part 2's fixture)
+      - name: Generate a synthetic Part 2
+        run: uv run python tests/synthetic_part2.py "$PART2_DIR"
+
+      # The on-run-start hooks check the synthetic Part 2 against the contract and its
+      # manifest; then the features and their leakage tests run.
+      - name: dbt build (on the synthetic Part 2)
         run: uv run dbt build --project-dir dbt --profiles-dir dbt
+
+  # The real thing: Part 2 checked out beside this repository and built on its own
+  # fixture, which carries the Gold-level traps the synthetic Part 2 does not. It is
+  # how a Part 2 change that breaks this repository shows up here.
+  #
+  # Part 2 is private, and a workflow's own token can read only its own repository, so
+  # this needs the PART2_DEPLOY_KEY secret (README.md, "CI"). Without it the job
+  # reports that it was skipped and passes, rather than failing every run.
+  part2-integration:
+    runs-on: ubuntu-latest
+    env:
+      GOLD_SNAPSHOT_DIR: tests/fixtures/gold # relative to Part 2's root, in both repos
+    defaults:
+      run:
+        working-directory: football-data-science
+    steps:
+      - name: Is the Part 2 deploy key configured?
+        id: key
+        working-directory: .
+        env:
+          PART2_DEPLOY_KEY: ${{ secrets.PART2_DEPLOY_KEY }}
+        run: |
+          if [ -n "$PART2_DEPLOY_KEY" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::part2-integration skipped: secret PART2_DEPLOY_KEY is not set (README.md, section CI)."
+          fi
+
+      # Both repositories side by side, because every path is relative to the sibling
+      # (CLAUDE.md §1): ../football-data-analytics.
+      - name: Check out this repository
+        if: steps.key.outputs.available == 'true'
+        uses: actions/checkout@v4
+        with:
+          path: football-data-science
+
+      # Part 2's default branch, deliberately not pinned: the point is to find out
+      # when Part 2 changes under this repository.
+      - name: Check out Part 2 beside it
+        if: steps.key.outputs.available == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: Fabiohhp/football-data-analytics
+          path: football-data-analytics
+          ssh-key: ${{ secrets.PART2_DEPLOY_KEY }}
+
+      - name: Install uv
+        if: steps.key.outputs.available == 'true'
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "**/uv.lock"
+
+      - name: Build Part 2's marts on its fixture
+        if: steps.key.outputs.available == 'true'
+        working-directory: football-data-analytics
+        run: |
+          uv sync
+          uv run dbt build --project-dir dbt --profiles-dir dbt
+
+      - name: dbt build (on Part 2's fixture)
+        if: steps.key.outputs.available == 'true'
+        run: |
+          uv sync
+          uv run dbt build --project-dir dbt --profiles-dir dbt

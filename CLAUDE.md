@@ -393,10 +393,22 @@ football-data-science/
 └── README.md
 ```
 
-**CI and the fixture.** Part 2 carries a synthetic Gold fixture with every trap in
-it. CI checks out Part 2 beside this repository, builds Part 2's marts on that
-fixture, then runs this repository against the result — so CI never needs real
-data, and a change in Part 2 that breaks this repository shows up here.
+**CI and the fixture — two jobs.** CI never has real data, and the repositories are
+private, so a workflow here cannot read Part 2 without a credential.
+
+- **`build`** is self-contained and always runs. `tests/synthetic_part2.py` generates a
+  stand-in Part 2 from `contracts/part2_columns.json` — every contracted table with
+  exactly its columns and types — holding a four-club league over three seasons: a
+  season boundary, a relegated and a promoted club, a match with no xG, and a partial
+  live season. Lint, pytest (which uses the same generator) and `dbt build` run on it.
+- **`part2-integration`** checks Part 2 out beside this repository, builds Part 2's marts
+  on Part 2's own fixture — which carries the Gold-level traps the synthetic Part 2 does
+  not — and runs `dbt build` on the result. It is how a Part 2 change that breaks this
+  repository shows up. It needs the `PART2_DEPLOY_KEY` secret (a read-only deploy key on
+  Part 2, README "CI"); without it the job reports it was skipped and passes.
+
+The first design had only the second job. It failed on GitHub because the default token
+cannot check out another private repository — the reason `build` no longer depends on it.
 
 ---
 
@@ -439,7 +451,7 @@ the next.
 
 | Phase | Deliverable | Done when |
 |-------|-------------|-----------|
-| 0 ◐ | Repo skeleton, READ_ONLY attach of Part 2, column contract, CI on Part 2's fixture | CI builds Part 2 on the fixture and this repository's empty dbt project on top of it — **passes locally; pushed, GitHub result not yet confirmed** |
+| 0 ◐ | Repo skeleton, READ_ONLY attach of Part 2, column contract, CI on Part 2's fixture | CI builds Part 2 on the fixture and this repository's empty dbt project on top of it — **`build` is now self-contained (§10); the Part 2 job waits on the deploy key** |
 | 1 ✅ | `feat_match_outcome`, walk-forward splits, `assert_no_feature_reads_the_future` | The test passes, and fails when a window's shift is removed on purpose |
 | 2 ✅ | Baselines + model #1, `evaluate.py`, first report | RPS for base rates, Elo and the model, with paired intervals |
 | 3 | Model #2 (Dixon-Coles on goals and on xG) | Compared with #1 on the same splits |
