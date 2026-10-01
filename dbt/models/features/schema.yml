@@ -45,8 +45,9 @@ models:
       **Grain: one row per counting match. As-of: `as_of_date` = match_date.**
       Every feature of feat_team_form for both sides, as `home_*` / `away_*` pairs built
       by one macro, plus `short_history` (either side has fewer than `min_history`
-      earlier matches, L7). The target — `home_goals`, `away_goals`, `result` — describes
-      the match itself and is never an input (L3).
+      earlier matches, L7). The targets — `result` and every `target_*` column — describe
+      the match itself and are never inputs (L3); the prefix keeps them out of any
+      selection by `home_`/`away_`.
     data_tests:
       - assert_no_feature_reads_the_future
     columns:
@@ -63,3 +64,11 @@ models:
                 values: [H, D, A]
       - name: short_history
         data_tests: [not_null]
+      - name: target_home_goals
+        data_tests: [not_null]
+      - name: target_away_goals
+        data_tests: [not_null]
+      - name: target_home_xg
+        description: This match's xG — a training target for model #2, never an input. Null when unpaired (trap 7).
+      - name: target_away_xg
+        description: As target_home_xg, for the away side. Null exactly when target_home_xg is.

@@ -34,7 +34,7 @@ portfolio/football-data/
 |-------|-------|-------|--------|
 | Part 1 — Data Engineering & Architecture | Ingestion, Airflow, Bronze/Silver/Gold, data quality | `../football-data-engineering` | Complete |
 | Part 2 — Analytics & BI | Metrics layer, analyses, dashboard | `../football-data-analytics` | Complete |
-| **Part 3 — Machine Learning** | Match outcome and xG models, evaluation | **this repository** | **Phases 0–2 of 6 — features, baselines, model #1** |
+| **Part 3 — Machine Learning** | Match outcome and xG models, evaluation | **this repository** | **Phases 0–3 of 6 — features, baselines, models #1 and #2** |
 
 **The deliverable is a model a reviewer can trust the score of** — not the
 highest score. The audience is someone hiring for data science or ML: they will
@@ -52,7 +52,7 @@ feature pipelines, model selection, xG models built from `fact_shots` — is her
 
 ## 2. Status, and what this repository inherits
 
-**Model #1 and its baselines are built (phases 0–2, §12); models #2–#4 are not.** The data is: Part 1's Gold holds three big-5 seasons
+**Models #1 and #2 and their baselines are built (phases 0–3, §12); #3 and #4 are not.** The data is: Part 1's Gold holds three big-5 seasons
 (2024/25 and 2025/26 complete, 2026/27 in progress — about 3,700 matches and
 94,000 shots as of 2026-09), and Part 2's metrics layer builds on it with 131
 passing dbt tests. Treat those counts as a reading; the authority is the
@@ -454,7 +454,7 @@ the next.
 | 0 ◐ | Repo skeleton, READ_ONLY attach of Part 2, column contract, CI on Part 2's fixture | CI builds Part 2 on the fixture and this repository's empty dbt project on top of it — **`build` is now self-contained (§10); the Part 2 job waits on the deploy key** |
 | 1 ✅ | `feat_match_outcome`, walk-forward splits, `assert_no_feature_reads_the_future` | The test passes, and fails when a window's shift is removed on purpose |
 | 2 ✅ | Baselines + model #1, `evaluate.py`, first report | RPS for base rates, Elo and the model, with paired intervals |
-| 3 | Model #2 (Dixon-Coles on goals and on xG) | Compared with #1 on the same splits |
+| 3 ✅ | Model #2 (Dixon-Coles on goals and on xG) | Compared with #1 on the same splits |
 | 4 | Model #3 (xG) against Understat's | Calibration plot and log loss beside Understat's, with the L10 gap stated |
 | 5 | Prospective scoring on the next snapshot, predictions page in Part 2's dashboard | A frozen model scored on matches played after it was frozen |
 | 6 | README as the front page — and the portfolio's closing chapter | A reviewer understands what the models can and cannot do without running anything |
@@ -544,6 +544,66 @@ Worth knowing before building on it:
   which scikit-learn refuses (the model casts to `float64`, so missing stays `NaN`); and
   `prior_season_*` is empty for every row of 2024/25, which histogram boosting cannot bin
   — `DropEmptyColumns` drops a column with no value in the *training fold*.
+
+**What phase 3 established.** Modelling goals beats modelling the result on
+calibration, and not measurably on anything else. Dixon-Coles (`models/dixon_coles.py`) is
+fitted per league — leagues never meet, so a joint fit cannot place their strengths
+against each other — once on goals (ρ fitted jointly) and once on each side's xG (a
+Poisson quasi-likelihood for the rates, then ρ alone on the actual scorelines, since ρ is
+a property of goals). On the same 2025/26 hold-out, same folds:
+
+| | RPS | log loss | Brier |
+|---|---|---|---|
+| league base rates | 0.2293 | 1.0731 | 0.6489 |
+| Elo (k = 30) | 0.2076 | 1.0103 | 0.6046 |
+| model #1, form | 0.2091 | 1.0225 | 0.6105 |
+| Dixon-Coles on goals (ξ = 0, penalty 4) | 0.2054 | 1.0040 | 0.5995 |
+| **Dixon-Coles on xG** (ξ = 0.01, penalty 1) | **0.2045** | **1.0026** | **0.5979** |
+
+- **Neither Dixon-Coles variant can be distinguished from Elo**: RPS difference −0.0023
+  [−0.0057, +0.0011] on goals, −0.0031 [−0.0070, +0.0008] on xG. Best point estimates of
+  any method, intervals across zero.
+- **Goals against the result:** Dixon-Coles on goals beats model #1 on log loss (−0.0185
+  [−0.0331, −0.0039]); on RPS the interval ends at +0.0001 — cannot be distinguished,
+  only just.
+- **xG against goals:** −0.0008 [−0.0039, +0.0024] RPS — cannot be distinguished. On
+  validation xG led clearly (0.2031 against 0.2071); on the hold-out the gap all but went.
+- **Calibration is where the goals models differ.** Mean |predicted − observed| per class
+  (H, D, A): Elo 0.047 / 0.022 / 0.042, model #1 0.052 / 0.052 / 0.047, Dixon-Coles on
+  goals 0.027 / 0.013 / 0.027, on xG 0.026 / 0.030 / 0.028. Where Elo says an away win is
+  65%, it happens 52%; where Dixon-Coles on goals says 64%, 64%. The overconfidence about
+  favourites found in phase 2 belongs to Elo and the form model, not to the data. No
+  interval is attached to these gaps.
+- **Draws:** Dixon-Coles on goals predicts a 24.9% mean draw rate against 25.5% actual —
+  the closest of any model — and still makes a draw the most likely outcome in only 0.3%
+  of matches. Being calibrated on draws and backing draws are different things (L11).
+- **Short history:** 65 matches, no interval. Dixon-Coles on xG does worst of the models
+  there (0.215); a promoted club's xG-fitted strength rests on the three weakest clubs'
+  xG, and a direction is all 65 matches can give.
+
+How it was built, and what bit:
+
+- **Targets are now `target_*`.** Model #2 trains on each past match's own xG. Named
+  `home_xg`, it would have been picked up by model #1's `home_*`/`away_*` feature selection
+  and handed the model this match's xG — L3. `feat_match_outcome` names every target
+  `target_*`, so no prefix selection can reach one; a test pins it.
+- **Strength is attack *plus* defence.** `d` enters the opponent's rate as `− d`, so a high
+  `d` is a good defence. The first version ranked clubs by `a − d` for the promoted-club
+  prior, which calls a strong defensive side weak; a test on synthetic seasons caught it,
+  and `test_a_promoted_club_starts_at_the_weakest_three_of_last_season` now uses a club
+  that the two formulas rank at opposite ends.
+- **The gradient is analytic**, including the Dixon-Coles τ terms, and checked against a
+  numerical one — about 540 fits per run, which a numerical gradient would make ~45×
+  slower.
+- **The grid was widened on validation, twice, before the hold-out was touched.** Both
+  variants first chose an edge (the xG fit the largest decay, 0.005; the penalties 1 and
+  4 at opposite ends). Widened once each way, the optima sat inside the grid, and the
+  selection did not change.
+- **The hold-out ledger is per method.** Adding a model is not another look at the
+  hold-out for the models already scored. Each method records its own evaluations, keyed
+  by its own settings; the first report's combined entry was carried over onto base
+  rates, Elo and model #1 with its original date, after their scores, calibration, draws
+  and all six earlier comparisons reproduced exactly.
 
 ---
 

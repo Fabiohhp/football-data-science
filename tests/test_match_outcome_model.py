@@ -32,8 +32,10 @@ def _frame(n: int = 300, seed: int = 0) -> pd.DataFrame:
             # is empty for the whole frame, as prior_season_* is in 2024/25.
             "home_prior_season_matches": pd.array([pd.NA] * n, dtype="Int64"),
             "away_prior_season_matches": pd.array([pd.NA] * n, dtype="Int64"),
-            "home_goals": (edge > 0).astype(int) * 2,
-            "away_goals": (edge < 0).astype(int) * 2,
+            "target_home_goals": (edge > 0).astype(int) * 2,
+            "target_away_goals": (edge < 0).astype(int) * 2,
+            "target_home_xg": np.abs(edge),
+            "target_away_xg": np.abs(-edge),
             "result": result,
         }
     )
@@ -44,7 +46,7 @@ def _frame(n: int = 300, seed: int = 0) -> pd.DataFrame:
 def test_the_target_and_identifiers_are_never_features():
     columns = feature_columns(_frame())
     assert not set(columns) & NOT_FEATURES
-    assert {"home_goals", "away_goals", "result"}.isdisjoint(columns)
+    assert not [c for c in columns if c.startswith("target_") or c == "result"]
     assert "home_form_points_per_match" in columns
 
 

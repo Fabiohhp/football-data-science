@@ -2,7 +2,7 @@
   "model": "match_outcome",
   "citation": "features built from the Gold snapshot exported 2026-09-20T13:41:36+00:00, matches 2024-08-15 to 2026-09-19 (3,733 matches, 94,034 shots)",
   "git": {
-    "commit": "a1873333bd77949bcd0811edd8ed07024dcd3f89",
+    "commit": "a480372f180ecb7dad88f5a35b13836cd7268568",
     "dirty": true
   },
   "plan": {
@@ -140,6 +140,7 @@
     "base_rates": [
       {
         "name": "base_rates",
+        "settings": {},
         "rps": 0.23468,
         "log_loss": 1.07763,
         "brier": 0.65291,
@@ -149,199 +150,664 @@
     "elo": [
       {
         "name": "elo(k=10)",
+        "settings": {
+          "k": 10.0,
+          "home_advantage": 60.0,
+          "initial": 1500.0,
+          "promoted_from_bottom": 3
+        },
         "rps": 0.20746,
         "log_loss": 1.00398,
         "brier": 0.59808,
-        "n": 1300,
-        "k": 10.0
+        "n": 1300
       },
       {
         "name": "elo(k=15)",
+        "settings": {
+          "k": 15.0,
+          "home_advantage": 60.0,
+          "initial": 1500.0,
+          "promoted_from_bottom": 3
+        },
         "rps": 0.20728,
         "log_loss": 1.00292,
         "brier": 0.59764,
-        "n": 1300,
-        "k": 15.0
+        "n": 1300
       },
       {
         "name": "elo(k=20)",
+        "settings": {
+          "k": 20.0,
+          "home_advantage": 60.0,
+          "initial": 1500.0,
+          "promoted_from_bottom": 3
+        },
         "rps": 0.20718,
         "log_loss": 1.00217,
         "brier": 0.59736,
-        "n": 1300,
-        "k": 20.0
+        "n": 1300
       },
       {
         "name": "elo(k=30)",
+        "settings": {
+          "k": 30.0,
+          "home_advantage": 60.0,
+          "initial": 1500.0,
+          "promoted_from_bottom": 3
+        },
         "rps": 0.20714,
         "log_loss": 1.00138,
         "brier": 0.59719,
-        "n": 1300,
-        "k": 30.0
+        "n": 1300
       },
       {
         "name": "elo(k=40)",
+        "settings": {
+          "k": 40.0,
+          "home_advantage": 60.0,
+          "initial": 1500.0,
+          "promoted_from_bottom": 3
+        },
         "rps": 0.20727,
         "log_loss": 1.00128,
         "brier": 0.5974,
-        "n": 1300,
-        "k": 40.0
+        "n": 1300
       }
     ],
     "model": [
       {
         "name": "logistic(C=0.003)",
-        "rps": 0.20896,
-        "log_loss": 1.00544,
-        "brier": 0.60048,
-        "n": 1300,
-        "candidate": {
+        "settings": {
           "family": "logistic",
           "params": {
             "C": 0.003
           }
-        }
+        },
+        "rps": 0.20896,
+        "log_loss": 1.00544,
+        "brier": 0.60048,
+        "n": 1300
       },
       {
         "name": "logistic(C=0.01)",
-        "rps": 0.20605,
-        "log_loss": 0.99775,
-        "brier": 0.5949,
-        "n": 1300,
-        "candidate": {
+        "settings": {
           "family": "logistic",
           "params": {
             "C": 0.01
           }
-        }
+        },
+        "rps": 0.20605,
+        "log_loss": 0.99775,
+        "brier": 0.5949,
+        "n": 1300
       },
       {
         "name": "logistic(C=0.03)",
-        "rps": 0.20499,
-        "log_loss": 0.99632,
-        "brier": 0.59347,
-        "n": 1300,
-        "candidate": {
+        "settings": {
           "family": "logistic",
           "params": {
             "C": 0.03
           }
-        }
+        },
+        "rps": 0.20499,
+        "log_loss": 0.99632,
+        "brier": 0.59347,
+        "n": 1300
       },
       {
         "name": "logistic(C=0.1)",
-        "rps": 0.20509,
-        "log_loss": 0.99898,
-        "brier": 0.59463,
-        "n": 1300,
-        "candidate": {
+        "settings": {
           "family": "logistic",
           "params": {
             "C": 0.1
           }
-        }
+        },
+        "rps": 0.20509,
+        "log_loss": 0.99898,
+        "brier": 0.59463,
+        "n": 1300
       },
       {
         "name": "logistic(C=0.3)",
-        "rps": 0.20579,
-        "log_loss": 1.00325,
-        "brier": 0.59685,
-        "n": 1300,
-        "candidate": {
+        "settings": {
           "family": "logistic",
           "params": {
             "C": 0.3
           }
-        }
+        },
+        "rps": 0.20579,
+        "log_loss": 1.00325,
+        "brier": 0.59685,
+        "n": 1300
       },
       {
         "name": "logistic(C=1.0)",
-        "rps": 0.20669,
-        "log_loss": 1.00824,
-        "brier": 0.59937,
-        "n": 1300,
-        "candidate": {
+        "settings": {
           "family": "logistic",
           "params": {
             "C": 1.0
           }
-        }
+        },
+        "rps": 0.20669,
+        "log_loss": 1.00824,
+        "brier": 0.59937,
+        "n": 1300
       },
       {
         "name": "boosting(learning_rate=0.05, max_iter=100, max_depth=2)",
+        "settings": {
+          "family": "boosting",
+          "params": {
+            "learning_rate": 0.05,
+            "max_iter": 100,
+            "max_depth": 2
+          }
+        },
         "rps": 0.20841,
         "log_loss": 1.01631,
         "brier": 0.60543,
-        "n": 1300,
-        "candidate": {
-          "family": "boosting",
-          "params": {
-            "learning_rate": 0.05,
-            "max_iter": 100,
-            "max_depth": 2
-          }
-        }
+        "n": 1300
       },
       {
         "name": "boosting(learning_rate=0.05, max_iter=100, max_depth=3)",
-        "rps": 0.21149,
-        "log_loss": 1.03386,
-        "brier": 0.61477,
-        "n": 1300,
-        "candidate": {
+        "settings": {
           "family": "boosting",
           "params": {
             "learning_rate": 0.05,
             "max_iter": 100,
             "max_depth": 3
           }
-        }
+        },
+        "rps": 0.21149,
+        "log_loss": 1.03386,
+        "brier": 0.61477,
+        "n": 1300
       },
       {
         "name": "boosting(learning_rate=0.05, max_iter=200, max_depth=2)",
-        "rps": 0.21257,
-        "log_loss": 1.03853,
-        "brier": 0.61788,
-        "n": 1300,
-        "candidate": {
+        "settings": {
           "family": "boosting",
           "params": {
             "learning_rate": 0.05,
             "max_iter": 200,
             "max_depth": 2
           }
-        }
+        },
+        "rps": 0.21257,
+        "log_loss": 1.03853,
+        "brier": 0.61788,
+        "n": 1300
       },
       {
         "name": "boosting(learning_rate=0.05, max_iter=200, max_depth=3)",
-        "rps": 0.21826,
-        "log_loss": 1.07542,
-        "brier": 0.63528,
-        "n": 1300,
-        "candidate": {
+        "settings": {
           "family": "boosting",
           "params": {
             "learning_rate": 0.05,
             "max_iter": 200,
             "max_depth": 3
           }
-        }
+        },
+        "rps": 0.21826,
+        "log_loss": 1.07542,
+        "brier": 0.63528,
+        "n": 1300
+      }
+    ],
+    "dc_goals": [
+      {
+        "name": "dixon_coles(target=goals, xi=0, penalty=0.25)",
+        "settings": {
+          "target": "goals",
+          "xi": 0.0,
+          "penalty": 0.25
+        },
+        "rps": 0.20938,
+        "log_loss": 1.01436,
+        "brier": 0.6046,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=goals, xi=0, penalty=1)",
+        "settings": {
+          "target": "goals",
+          "xi": 0.0,
+          "penalty": 1.0
+        },
+        "rps": 0.2084,
+        "log_loss": 1.00914,
+        "brier": 0.60204,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=goals, xi=0, penalty=4)",
+        "settings": {
+          "target": "goals",
+          "xi": 0.0,
+          "penalty": 4.0
+        },
+        "rps": 0.20714,
+        "log_loss": 1.00208,
+        "brier": 0.59831,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=goals, xi=0, penalty=16)",
+        "settings": {
+          "target": "goals",
+          "xi": 0.0,
+          "penalty": 16.0
+        },
+        "rps": 0.21056,
+        "log_loss": 1.01107,
+        "brier": 0.60453,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=goals, xi=0.002, penalty=0.25)",
+        "settings": {
+          "target": "goals",
+          "xi": 0.002,
+          "penalty": 0.25
+        },
+        "rps": 0.20957,
+        "log_loss": 1.01505,
+        "brier": 0.60503,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=goals, xi=0.002, penalty=1)",
+        "settings": {
+          "target": "goals",
+          "xi": 0.002,
+          "penalty": 1.0
+        },
+        "rps": 0.20859,
+        "log_loss": 1.00978,
+        "brier": 0.60246,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=goals, xi=0.002, penalty=4)",
+        "settings": {
+          "target": "goals",
+          "xi": 0.002,
+          "penalty": 4.0
+        },
+        "rps": 0.2073,
+        "log_loss": 1.00268,
+        "brier": 0.5987,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=goals, xi=0.002, penalty=16)",
+        "settings": {
+          "target": "goals",
+          "xi": 0.002,
+          "penalty": 16.0
+        },
+        "rps": 0.21072,
+        "log_loss": 1.01165,
+        "brier": 0.60492,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=goals, xi=0.005, penalty=0.25)",
+        "settings": {
+          "target": "goals",
+          "xi": 0.005,
+          "penalty": 0.25
+        },
+        "rps": 0.21017,
+        "log_loss": 1.01714,
+        "brier": 0.60638,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=goals, xi=0.005, penalty=1)",
+        "settings": {
+          "target": "goals",
+          "xi": 0.005,
+          "penalty": 1.0
+        },
+        "rps": 0.20915,
+        "log_loss": 1.0117,
+        "brier": 0.60374,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=goals, xi=0.005, penalty=4)",
+        "settings": {
+          "target": "goals",
+          "xi": 0.005,
+          "penalty": 4.0
+        },
+        "rps": 0.20777,
+        "log_loss": 1.00427,
+        "brier": 0.5998,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=goals, xi=0.005, penalty=16)",
+        "settings": {
+          "target": "goals",
+          "xi": 0.005,
+          "penalty": 16.0
+        },
+        "rps": 0.21107,
+        "log_loss": 1.01287,
+        "brier": 0.60576,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=goals, xi=0.01, penalty=0.25)",
+        "settings": {
+          "target": "goals",
+          "xi": 0.01,
+          "penalty": 0.25
+        },
+        "rps": 0.21185,
+        "log_loss": 1.02298,
+        "brier": 0.61015,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=goals, xi=0.01, penalty=1)",
+        "settings": {
+          "target": "goals",
+          "xi": 0.01,
+          "penalty": 1.0
+        },
+        "rps": 0.2107,
+        "log_loss": 1.01698,
+        "brier": 0.60726,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=goals, xi=0.01, penalty=4)",
+        "settings": {
+          "target": "goals",
+          "xi": 0.01,
+          "penalty": 4.0
+        },
+        "rps": 0.20902,
+        "log_loss": 1.00842,
+        "brier": 0.60269,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=goals, xi=0.01, penalty=16)",
+        "settings": {
+          "target": "goals",
+          "xi": 0.01,
+          "penalty": 16.0
+        },
+        "rps": 0.21186,
+        "log_loss": 1.01555,
+        "brier": 0.60764,
+        "n": 1300
+      }
+    ],
+    "dc_xg": [
+      {
+        "name": "dixon_coles(target=xg, xi=0, penalty=0.25)",
+        "settings": {
+          "target": "xg",
+          "xi": 0.0,
+          "penalty": 0.25
+        },
+        "rps": 0.20392,
+        "log_loss": 0.99193,
+        "brier": 0.59046,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=xg, xi=0, penalty=1)",
+        "settings": {
+          "target": "xg",
+          "xi": 0.0,
+          "penalty": 1.0
+        },
+        "rps": 0.20373,
+        "log_loss": 0.99081,
+        "brier": 0.58992,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=xg, xi=0, penalty=4)",
+        "settings": {
+          "target": "xg",
+          "xi": 0.0,
+          "penalty": 4.0
+        },
+        "rps": 0.20421,
+        "log_loss": 0.99146,
+        "brier": 0.59062,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=xg, xi=0, penalty=16)",
+        "settings": {
+          "target": "xg",
+          "xi": 0.0,
+          "penalty": 16.0
+        },
+        "rps": 0.20969,
+        "log_loss": 1.00756,
+        "brier": 0.60183,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=xg, xi=0.002, penalty=0.25)",
+        "settings": {
+          "target": "xg",
+          "xi": 0.002,
+          "penalty": 0.25
+        },
+        "rps": 0.20361,
+        "log_loss": 0.99107,
+        "brier": 0.5899,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=xg, xi=0.002, penalty=1)",
+        "settings": {
+          "target": "xg",
+          "xi": 0.002,
+          "penalty": 1.0
+        },
+        "rps": 0.20343,
+        "log_loss": 0.98998,
+        "brier": 0.58937,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=xg, xi=0.002, penalty=4)",
+        "settings": {
+          "target": "xg",
+          "xi": 0.002,
+          "penalty": 4.0
+        },
+        "rps": 0.20394,
+        "log_loss": 0.99077,
+        "brier": 0.59014,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=xg, xi=0.002, penalty=16)",
+        "settings": {
+          "target": "xg",
+          "xi": 0.002,
+          "penalty": 16.0
+        },
+        "rps": 0.20952,
+        "log_loss": 1.0072,
+        "brier": 0.60153,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=xg, xi=0.005, penalty=0.25)",
+        "settings": {
+          "target": "xg",
+          "xi": 0.005,
+          "penalty": 0.25
+        },
+        "rps": 0.20333,
+        "log_loss": 0.99037,
+        "brier": 0.58946,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=xg, xi=0.005, penalty=1)",
+        "settings": {
+          "target": "xg",
+          "xi": 0.005,
+          "penalty": 1.0
+        },
+        "rps": 0.20315,
+        "log_loss": 0.98929,
+        "brier": 0.58892,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=xg, xi=0.005, penalty=4)",
+        "settings": {
+          "target": "xg",
+          "xi": 0.005,
+          "penalty": 4.0
+        },
+        "rps": 0.20367,
+        "log_loss": 0.99017,
+        "brier": 0.58971,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=xg, xi=0.005, penalty=16)",
+        "settings": {
+          "target": "xg",
+          "xi": 0.005,
+          "penalty": 16.0
+        },
+        "rps": 0.20934,
+        "log_loss": 1.00693,
+        "brier": 0.60127,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=xg, xi=0.01, penalty=0.25)",
+        "settings": {
+          "target": "xg",
+          "xi": 0.01,
+          "penalty": 0.25
+        },
+        "rps": 0.20335,
+        "log_loss": 0.99076,
+        "brier": 0.58975,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=xg, xi=0.01, penalty=1)",
+        "settings": {
+          "target": "xg",
+          "xi": 0.01,
+          "penalty": 1.0
+        },
+        "rps": 0.20314,
+        "log_loss": 0.98957,
+        "brier": 0.58913,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=xg, xi=0.01, penalty=4)",
+        "settings": {
+          "target": "xg",
+          "xi": 0.01,
+          "penalty": 4.0
+        },
+        "rps": 0.20361,
+        "log_loss": 0.99034,
+        "brier": 0.58979,
+        "n": 1300
+      },
+      {
+        "name": "dixon_coles(target=xg, xi=0.01, penalty=16)",
+        "settings": {
+          "target": "xg",
+          "xi": 0.01,
+          "penalty": 16.0
+        },
+        "rps": 0.20928,
+        "log_loss": 1.00718,
+        "brier": 0.60134,
+        "n": 1300
       }
     ]
   },
   "selected": {
+    "base_rates": {
+      "name": "base_rates"
+    },
     "elo": {
       "k": 30.0,
       "home_advantage": 60.0,
       "initial": 1500.0,
-      "promoted_from_bottom": 3
+      "promoted_from_bottom": 3,
+      "name": "elo(k=30)"
     },
     "model": {
       "family": "logistic",
       "params": {
         "C": 0.03
       },
+      "features": [
+        "home_matches_of_history",
+        "away_matches_of_history",
+        "home_form_matches",
+        "away_form_matches",
+        "home_form_prior_season_matches",
+        "away_form_prior_season_matches",
+        "home_form_points_per_match",
+        "away_form_points_per_match",
+        "home_form_goals_for",
+        "away_form_goals_for",
+        "home_form_goals_against",
+        "away_form_goals_against",
+        "home_form_understat_matches",
+        "away_form_understat_matches",
+        "home_form_npxg_for",
+        "away_form_npxg_for",
+        "home_form_npxg_against",
+        "away_form_npxg_against",
+        "home_form_xpts",
+        "away_form_xpts",
+        "home_season_matches",
+        "away_season_matches",
+        "home_season_points_per_match",
+        "away_season_points_per_match",
+        "home_season_understat_matches",
+        "away_season_understat_matches",
+        "home_season_npxg_difference",
+        "away_season_npxg_difference",
+        "home_prior_season_matches",
+        "away_prior_season_matches",
+        "home_prior_season_points_per_match",
+        "away_prior_season_points_per_match",
+        "home_prior_season_npxg_difference",
+        "away_prior_season_npxg_difference"
+      ],
       "name": "logistic(C=0.03)"
+    },
+    "dc_goals": {
+      "target": "goals",
+      "xi": 0.0,
+      "penalty": 4.0,
+      "name": "dixon_coles(target=goals, xi=0, penalty=4)"
+    },
+    "dc_xg": {
+      "target": "xg",
+      "xi": 0.01,
+      "penalty": 1.0,
+      "name": "dixon_coles(target=xg, xi=0.01, penalty=1)"
     }
   },
   "holdout": {
@@ -364,6 +830,18 @@
         "rps": 0.2091,
         "log_loss": 1.0225,
         "brier": 0.61049,
+        "n": 1752
+      },
+      "dc_goals": {
+        "rps": 0.20535,
+        "log_loss": 1.00402,
+        "brier": 0.59948,
+        "n": 1752
+      },
+      "dc_xg": {
+        "rps": 0.20455,
+        "log_loss": 1.00262,
+        "brier": 0.59792,
         "n": 1752
       }
     },
@@ -445,6 +923,110 @@
         "confidence": 0.95,
         "seed": 20260920,
         "verdict": "elo is better"
+      },
+      {
+        "metric": "rps",
+        "candidate": "dc_goals",
+        "reference": "elo",
+        "value": -0.00225,
+        "low": -0.0057,
+        "high": 0.00113,
+        "n": 1752,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "verdict": "cannot be distinguished"
+      },
+      {
+        "metric": "log_loss",
+        "candidate": "dc_goals",
+        "reference": "elo",
+        "value": -0.00629,
+        "low": -0.01732,
+        "high": 0.00458,
+        "n": 1752,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "verdict": "cannot be distinguished"
+      },
+      {
+        "metric": "rps",
+        "candidate": "dc_goals",
+        "reference": "model",
+        "value": -0.00374,
+        "low": -0.00765,
+        "high": 0.00015,
+        "n": 1752,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "verdict": "cannot be distinguished"
+      },
+      {
+        "metric": "log_loss",
+        "candidate": "dc_goals",
+        "reference": "model",
+        "value": -0.01847,
+        "low": -0.03306,
+        "high": -0.00389,
+        "n": 1752,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "verdict": "dc_goals is better"
+      },
+      {
+        "metric": "rps",
+        "candidate": "dc_xg",
+        "reference": "dc_goals",
+        "value": -0.00081,
+        "low": -0.00394,
+        "high": 0.00237,
+        "n": 1752,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "verdict": "cannot be distinguished"
+      },
+      {
+        "metric": "log_loss",
+        "candidate": "dc_xg",
+        "reference": "dc_goals",
+        "value": -0.00141,
+        "low": -0.01132,
+        "high": 0.00864,
+        "n": 1752,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "verdict": "cannot be distinguished"
+      },
+      {
+        "metric": "rps",
+        "candidate": "dc_xg",
+        "reference": "elo",
+        "value": -0.00306,
+        "low": -0.00703,
+        "high": 0.00076,
+        "n": 1752,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "verdict": "cannot be distinguished"
+      },
+      {
+        "metric": "log_loss",
+        "candidate": "dc_xg",
+        "reference": "elo",
+        "value": -0.0077,
+        "low": -0.02026,
+        "high": 0.0045,
+        "n": 1752,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "verdict": "cannot be distinguished"
       }
     ],
     "by_history": {
@@ -466,6 +1048,18 @@
           "log_loss": 0.99056,
           "brier": 0.59274,
           "n": 65
+        },
+        "dc_goals": {
+          "rps": 0.2004,
+          "log_loss": 1.00594,
+          "brier": 0.60053,
+          "n": 65
+        },
+        "dc_xg": {
+          "rps": 0.21537,
+          "log_loss": 1.04638,
+          "brier": 0.62888,
+          "n": 65
         }
       },
       "full_history": {
@@ -486,6 +1080,18 @@
           "log_loss": 1.02373,
           "brier": 0.61118,
           "n": 1687
+        },
+        "dc_goals": {
+          "rps": 0.20555,
+          "log_loss": 1.00395,
+          "brier": 0.59944,
+          "n": 1687
+        },
+        "dc_xg": {
+          "rps": 0.20413,
+          "log_loss": 1.00093,
+          "brier": 0.59672,
+          "n": 1687
         }
       }
     },
@@ -504,6 +1110,16 @@
         "actual_draw_rate": 0.25457,
         "mean_predicted_draw": 0.24064,
         "draw_most_likely_share": 0.06564
+      },
+      "dc_goals": {
+        "actual_draw_rate": 0.25457,
+        "mean_predicted_draw": 0.24915,
+        "draw_most_likely_share": 0.00285
+      },
+      "dc_xg": {
+        "actual_draw_rate": 0.25457,
+        "mean_predicted_draw": 0.22786,
+        "draw_most_likely_share": 0.0
       }
     },
     "calibration": {
@@ -952,14 +1568,419 @@
           "mean_predicted": 0.93339,
           "observed_rate": 1.0
         }
+      ],
+      "dc_goals": [
+        {
+          "outcome": "H",
+          "bin_low": 0.0,
+          "bin_high": 0.1,
+          "n": 15,
+          "mean_predicted": 0.08048,
+          "observed_rate": 0.0
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.1,
+          "bin_high": 0.2,
+          "n": 121,
+          "mean_predicted": 0.16067,
+          "observed_rate": 0.19835
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.2,
+          "bin_high": 0.3,
+          "n": 303,
+          "mean_predicted": 0.25485,
+          "observed_rate": 0.26073
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.3,
+          "bin_high": 0.4,
+          "n": 393,
+          "mean_predicted": 0.3526,
+          "observed_rate": 0.38422
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.4,
+          "bin_high": 0.5,
+          "n": 396,
+          "mean_predicted": 0.4463,
+          "observed_rate": 0.43939
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.5,
+          "bin_high": 0.6,
+          "n": 290,
+          "mean_predicted": 0.54701,
+          "observed_rate": 0.5931
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.6,
+          "bin_high": 0.7,
+          "n": 148,
+          "mean_predicted": 0.64429,
+          "observed_rate": 0.66216
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.7,
+          "bin_high": 0.8,
+          "n": 66,
+          "mean_predicted": 0.74903,
+          "observed_rate": 0.84848
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.8,
+          "bin_high": 0.9,
+          "n": 19,
+          "mean_predicted": 0.83933,
+          "observed_rate": 0.89474
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.9,
+          "bin_high": 1.0,
+          "n": 1,
+          "mean_predicted": 0.91782,
+          "observed_rate": 0.0
+        },
+        {
+          "outcome": "D",
+          "bin_low": 0.0,
+          "bin_high": 0.1,
+          "n": 7,
+          "mean_predicted": 0.08178,
+          "observed_rate": 0.14286
+        },
+        {
+          "outcome": "D",
+          "bin_low": 0.1,
+          "bin_high": 0.2,
+          "n": 194,
+          "mean_predicted": 0.16682,
+          "observed_rate": 0.1701
+        },
+        {
+          "outcome": "D",
+          "bin_low": 0.2,
+          "bin_high": 0.3,
+          "n": 1388,
+          "mean_predicted": 0.25366,
+          "observed_rate": 0.26441
+        },
+        {
+          "outcome": "D",
+          "bin_low": 0.3,
+          "bin_high": 0.4,
+          "n": 163,
+          "mean_predicted": 0.3159,
+          "observed_rate": 0.27607
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.0,
+          "bin_high": 0.1,
+          "n": 59,
+          "mean_predicted": 0.0729,
+          "observed_rate": 0.01695
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.1,
+          "bin_high": 0.2,
+          "n": 280,
+          "mean_predicted": 0.15703,
+          "observed_rate": 0.14286
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.2,
+          "bin_high": 0.3,
+          "n": 470,
+          "mean_predicted": 0.25207,
+          "observed_rate": 0.23617
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.3,
+          "bin_high": 0.4,
+          "n": 419,
+          "mean_predicted": 0.34819,
+          "observed_rate": 0.28878
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.4,
+          "bin_high": 0.5,
+          "n": 281,
+          "mean_predicted": 0.44888,
+          "observed_rate": 0.44128
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.5,
+          "bin_high": 0.6,
+          "n": 154,
+          "mean_predicted": 0.54268,
+          "observed_rate": 0.51299
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.6,
+          "bin_high": 0.7,
+          "n": 70,
+          "mean_predicted": 0.64487,
+          "observed_rate": 0.64286
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.7,
+          "bin_high": 0.8,
+          "n": 15,
+          "mean_predicted": 0.75157,
+          "observed_rate": 0.73333
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.8,
+          "bin_high": 0.9,
+          "n": 4,
+          "mean_predicted": 0.817,
+          "observed_rate": 0.75
+        }
+      ],
+      "dc_xg": [
+        {
+          "outcome": "H",
+          "bin_low": 0.0,
+          "bin_high": 0.1,
+          "n": 14,
+          "mean_predicted": 0.07394,
+          "observed_rate": 0.07143
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.1,
+          "bin_high": 0.2,
+          "n": 107,
+          "mean_predicted": 0.15798,
+          "observed_rate": 0.15888
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.2,
+          "bin_high": 0.3,
+          "n": 259,
+          "mean_predicted": 0.25486,
+          "observed_rate": 0.24324
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.3,
+          "bin_high": 0.4,
+          "n": 347,
+          "mean_predicted": 0.35,
+          "observed_rate": 0.33141
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.4,
+          "bin_high": 0.5,
+          "n": 365,
+          "mean_predicted": 0.45059,
+          "observed_rate": 0.48219
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.5,
+          "bin_high": 0.6,
+          "n": 304,
+          "mean_predicted": 0.54545,
+          "observed_rate": 0.49671
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.6,
+          "bin_high": 0.7,
+          "n": 198,
+          "mean_predicted": 0.65098,
+          "observed_rate": 0.62626
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.7,
+          "bin_high": 0.8,
+          "n": 111,
+          "mean_predicted": 0.73832,
+          "observed_rate": 0.75676
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.8,
+          "bin_high": 0.9,
+          "n": 45,
+          "mean_predicted": 0.84201,
+          "observed_rate": 0.86667
+        },
+        {
+          "outcome": "H",
+          "bin_low": 0.9,
+          "bin_high": 1.0,
+          "n": 2,
+          "mean_predicted": 0.91364,
+          "observed_rate": 0.5
+        },
+        {
+          "outcome": "D",
+          "bin_low": 0.0,
+          "bin_high": 0.1,
+          "n": 25,
+          "mean_predicted": 0.08388,
+          "observed_rate": 0.08
+        },
+        {
+          "outcome": "D",
+          "bin_low": 0.1,
+          "bin_high": 0.2,
+          "n": 376,
+          "mean_predicted": 0.16826,
+          "observed_rate": 0.18617
+        },
+        {
+          "outcome": "D",
+          "bin_low": 0.2,
+          "bin_high": 0.3,
+          "n": 1289,
+          "mean_predicted": 0.24388,
+          "observed_rate": 0.27696
+        },
+        {
+          "outcome": "D",
+          "bin_low": 0.3,
+          "bin_high": 0.4,
+          "n": 62,
+          "mean_predicted": 0.31429,
+          "observed_rate": 0.27419
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.0,
+          "bin_high": 0.1,
+          "n": 91,
+          "mean_predicted": 0.0705,
+          "observed_rate": 0.05495
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.1,
+          "bin_high": 0.2,
+          "n": 325,
+          "mean_predicted": 0.15104,
+          "observed_rate": 0.17538
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.2,
+          "bin_high": 0.3,
+          "n": 423,
+          "mean_predicted": 0.24828,
+          "observed_rate": 0.23641
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.3,
+          "bin_high": 0.4,
+          "n": 392,
+          "mean_predicted": 0.34726,
+          "observed_rate": 0.30612
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.4,
+          "bin_high": 0.5,
+          "n": 256,
+          "mean_predicted": 0.44479,
+          "observed_rate": 0.39062
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.5,
+          "bin_high": 0.6,
+          "n": 179,
+          "mean_predicted": 0.54316,
+          "observed_rate": 0.53631
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.6,
+          "bin_high": 0.7,
+          "n": 55,
+          "mean_predicted": 0.64366,
+          "observed_rate": 0.63636
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.7,
+          "bin_high": 0.8,
+          "n": 26,
+          "mean_predicted": 0.74028,
+          "observed_rate": 0.65385
+        },
+        {
+          "outcome": "A",
+          "bin_low": 0.8,
+          "bin_high": 0.9,
+          "n": 5,
+          "mean_predicted": 0.83061,
+          "observed_rate": 1.0
+        }
       ]
     }
   },
-  "holdout_evaluations": [
-    {
-      "fingerprint": "bc3f81c33cf5b7df",
-      "git_commit": "a1873333bd77949bcd0811edd8ed07024dcd3f89",
-      "date": "2026-09-29"
-    }
-  ]
+  "holdout_evaluations": {
+    "base_rates": [
+      {
+        "fingerprint": "76b5e0310563173a",
+        "git_commit": "a1873333bd77949bcd0811edd8ed07024dcd3f89",
+        "date": "2026-09-29",
+        "note": "carried over from the combined ledger of the first report"
+      }
+    ],
+    "elo": [
+      {
+        "fingerprint": "af108ede0fd5a711",
+        "git_commit": "a1873333bd77949bcd0811edd8ed07024dcd3f89",
+        "date": "2026-09-29",
+        "note": "carried over from the combined ledger of the first report"
+      }
+    ],
+    "model": [
+      {
+        "fingerprint": "1f1d3461e13c68ff",
+        "git_commit": "a1873333bd77949bcd0811edd8ed07024dcd3f89",
+        "date": "2026-09-29",
+        "note": "carried over from the combined ledger of the first report"
+      }
+    ],
+    "dc_goals": [
+      {
+        "fingerprint": "b8a4af7c2a5104b1",
+        "git_commit": "a480372f180ecb7dad88f5a35b13836cd7268568",
+        "date": "2026-09-30"
+      }
+    ],
+    "dc_xg": [
+      {
+        "fingerprint": "781b70c9d1335274",
+        "git_commit": "a480372f180ecb7dad88f5a35b13836cd7268568",
+        "date": "2026-09-30"
+      }
+    ]
+  }
 }

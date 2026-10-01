@@ -48,11 +48,32 @@ import pandas as pd
 from football_ml import data, splits
 from football_ml import evaluate as ev
 from football_ml.baselines import BaseRates, EloForecast, EloSettings, pre_match_elo
+from football_ml.models.dixon_coles import DixonColes, DixonColesSettings
 from football_ml.models.match_outcome import CANDIDATES, Candidate, FormModel, feature_columns
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ELO_GRID = [EloSettings(k=k) for k in (10.0, 15.0, 20.0, 30.0, 40.0)]
-COMPARISONS = [("model", "elo"), ("model", "base_rates"), ("elo", "base_rates")]
+# Model #2's grid: time decay per day (none; half-lives of ~350, ~140 and ~70 days) and
+# the ridge penalty on attacks and defences. The same grid for both targets. The first
+# grid (decay up to 0.005, penalty 1 or 4) had both variants choosing an edge on
+# validation, so it was widened once each way before the hold-out was touched.
+DC_GRIDS = {
+    target: [
+        DixonColesSettings(target=target, xi=xi, penalty=penalty)
+        for xi in (0.0, 0.002, 0.005, 0.01)
+        for penalty in (0.25, 1.0, 4.0, 16.0)
+    ]
+    for target in ("goals", "xg")
+}
+COMPARISONS = [
+    ("model", "elo"),
+    ("model", "base_rates"),
+    ("elo", "base_rates"),
+    ("dc_goals", "elo"),
+    ("dc_goals", "model"),
+    ("dc_xg", "dc_goals"),
+    ("dc_xg", "elo"),
+]
 
 Forecast = Callable[[np.ndarray, np.ndarray], np.ndarray]
 
@@ -96,6 +117,78 @@ def _to_json(obj) -> str:
     return json.dumps(_rounded(obj), indent=2, ensure_ascii=False) + "\n"
 
 
+def _fingerprint(method: str, settings: dict, plan: splits.Plan) -> str:
+    """Everything that decides one method's hold-out score, hashed."""
+    payload = {
+        "method": method,
+        "settings": settings,
+        "holdout_folds": [f.label for f in plan.holdout],
+        "validation_folds": [f.label for f in plan.validation],
+    }
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
+
+
+def _ledger(
+    previous: dict | None, recorded: dict[str, dict], fingerprints: dict[str, str], git: dict
+) -> dict:
+    """Per-method record of hold-out evaluations, carried from the last report.
+
+    A method whose fingerprint is already recorded is being reproduced, not looked at
+    again. A new fingerprint for a method already on record is a second look, and the
+    report shows it. The first report kept one combined list for base rates, Elo and
+    model #1; it is carried over onto those methods — as the same evaluation if their
+    settings are unchanged, and as a separate, earlier one if they are not, so that a
+    look at the hold-out is never dropped from the record.
+    """
+    previous = previous or {}
+    old = previous.get("holdout_evaluations", {})
+    ledger: dict[str, list[dict]] = {}
+    if isinstance(old, list):  # the combined format of the first report
+        old_selected = previous.get("selected", {})
+        for method in ("base_rates", "elo", "model"):
+            then = {k: v for k, v in old_selected.get(method, {}).items() if k != "name"}
+            if method == "model":  # the first report kept the feature list apart
+                then["features"] = previous.get("features")
+            unchanged = then == recorded[method]
+            entries = [
+                entry
+                | {
+                    "fingerprint": fingerprints[method] if unchanged else entry["fingerprint"],
+                    "note": "carried over from the combined ledger of the first report",
+                }
+                for entry in old
+            ]
+            ledger[method] = entries
+    else:
+        ledger = {m: list(v) for m, v in old.items()}
+
+    for method, fingerprint in fingerprints.items():
+        entries = ledger.setdefault(method, [])
+        if not any(e["fingerprint"] == fingerprint for e in entries):
+            entries.append(
+                {"fingerprint": fingerprint, "git_commit": git["commit"], "date": str(date.today())}
+            )
+    return ledger
+
+
+QUESTIONS = {
+    "model": "Can pre-match form — goals, xG, xPTS — predict H/D/A better than league "
+    "base rates and Elo? (CLAUDE.md §8 #1)",
+    "dc_goals": "Does modelling goals per side (Dixon-Coles) beat modelling the result "
+    "directly? (CLAUDE.md §8 #2)",
+    "dc_xg": "Does fitting the Dixon-Coles scoring rates to xG instead of goals help? "
+    "(CLAUDE.md §8 #2)",
+}
+CARD_NAMES = {"model": "match_outcome", "dc_goals": "dixon_coles_goals", "dc_xg": "dixon_coles_xg"}
+LIMITATIONS = [
+    "Compared with league base rates and Elo only. Gold holds no betting odds, so there "
+    "is no market benchmark and no claim to beat one.",
+    "What a model uses is not what wins matches: no causal reading of its parameters, "
+    "coefficients or importances.",
+    "History starts in August 2024; a club's record counts from there (L7).",
+]
+
+
 def train_match_outcome(*, write: bool = True, validation_only: bool = False) -> dict:
     features = data.open_features()
     frame = (
@@ -103,6 +196,7 @@ def train_match_outcome(*, write: bool = True, validation_only: bool = False) ->
         .sort_values(["as_of_date", "match_key"], kind="stable")
         .reset_index(drop=True)
     )
+    live_seasons = splits.plan(frame).live_seasons
     plan = splits.plan(frame)
 
     # Drop the live season before anything else sees it (phase 5's prospective test).
@@ -114,8 +208,11 @@ def train_match_outcome(*, write: bool = True, validation_only: bool = False) ->
 
     elo_by_settings = {s: pre_match_elo(frame, s) for s in ELO_GRID}
 
-    def base_rates(train, test):
-        return BaseRates().fit(frame.iloc[train], y[train]).predict_proba(frame.iloc[test])
+    def base_rates(_settings=None) -> Forecast:
+        def forecast(train, test):
+            return BaseRates().fit(frame.iloc[train], y[train]).predict_proba(frame.iloc[test])
+
+        return forecast
 
     def elo(settings: EloSettings) -> Forecast:
         ratings = elo_by_settings[settings]
@@ -133,32 +230,44 @@ def train_match_outcome(*, write: bool = True, validation_only: bool = False) ->
 
         return forecast
 
-    # --- 1. validation: choose settings per method -----------------------------------
-    def validate(name: str, forecast: Forecast) -> dict:
-        idx, probs = walk(plan.validation, forecast)
-        return {"name": name, **ev.scores(probs, y[idx])}
+    def dixon_coles(settings: DixonColesSettings) -> Forecast:
+        def forecast(train, test):
+            return DixonColes(settings).fit(frame.iloc[train]).predict_proba(frame.iloc[test])
 
-    validation = {
-        "base_rates": [validate("base_rates", base_rates)],
-        "elo": [validate(f"elo(k={s.k:g})", elo(s)) | {"k": s.k} for s in ELO_GRID],
-        "model": [validate(c.name, form(c)) | {"candidate": asdict(c)} for c in CANDIDATES],
+        return forecast
+
+    # name -> (grid, how to build a forecast, how to name a setting, how to record it)
+    methods = {
+        "base_rates": ([None], base_rates, lambda s: "base_rates", lambda s: {}),
+        "elo": (ELO_GRID, elo, lambda s: f"elo(k={s.k:g})", asdict),
+        "model": (CANDIDATES, form, lambda s: s.name, asdict),
+        "dc_goals": (DC_GRIDS["goals"], dixon_coles, lambda s: s.name, asdict),
+        "dc_xg": (DC_GRIDS["xg"], dixon_coles, lambda s: s.name, asdict),
     }
-    best_elo = EloSettings(k=min(validation["elo"], key=lambda r: r["rps"])["k"])
-    best_row = min(validation["model"], key=lambda r: r["rps"])
-    best = Candidate(**best_row["candidate"])
+
+    # --- 1. validation: choose settings per method -----------------------------------
+    validation, selected = {}, {}
+    for method, (grid, build, name, record) in methods.items():
+        rows = []
+        for setting in grid:
+            idx, probs = walk(plan.validation, build(setting))
+            rows.append(
+                {"name": name(setting), "settings": record(setting)} | ev.scores(probs, y[idx])
+            )
+        validation[method] = rows
+        best_i = min(range(len(grid)), key=lambda i: rows[i]["rps"])
+        selected[method] = grid[best_i]
     if validation_only:
         features.con.close()
-        return {"validation": validation, "selected": {"elo": best_elo, "model": best.name}}
+        return {
+            "validation": validation,
+            "selected": {m: methods[m][2](s) for m, s in selected.items()},
+        }
 
     # --- 2. hold-out: frozen settings, scored once ------------------------------------
-    methods: dict[str, Forecast] = {
-        "base_rates": base_rates,
-        "elo": elo(best_elo),
-        "model": form(best),
-    }
     holdout_probs = {}
-    for name, forecast in methods.items():
-        idx, holdout_probs[name] = walk(plan.holdout, forecast)
+    for method, (_, build, _, _) in methods.items():
+        idx, holdout_probs[method] = walk(plan.holdout, build(selected[method]))
     y_hold = y[idx]
     short = frame["short_history"].to_numpy()[idx].astype(bool)
 
@@ -185,64 +294,16 @@ def train_match_outcome(*, write: bool = True, validation_only: bool = False) ->
         "calibration": {name: ev.calibration(p, y_hold) for name, p in holdout_probs.items()},
     }
 
-    # --- 3. final fit, card, report ---------------------------------------------------
+    # --- 3. ledger, final fits, cards, report -----------------------------------------
     git = git_state()
-    fingerprint = hashlib.sha256(
-        json.dumps(
-            {
-                "elo": asdict(best_elo),
-                "model": asdict(best),
-                "features": predictors,
-                "holdout_folds": [f.label for f in plan.holdout],
-                "validation_folds": [f.label for f in plan.validation],
-            },
-            sort_keys=True,
-        ).encode()
-    ).hexdigest()[:16]
+    recorded = {m: methods[m][3](s) for m, s in selected.items()}
+    recorded["model"] = recorded["model"] | {"features": predictors}
+    fingerprints = {m: _fingerprint(m, v, plan) for m, v in recorded.items()}
 
     report_path = REPO_ROOT / "reports" / "match_outcome.json"
-    ledger = []
-    if report_path.exists():
-        ledger = json.loads(report_path.read_text()).get("holdout_evaluations", [])
-    if not any(entry["fingerprint"] == fingerprint for entry in ledger):
-        ledger.append(
-            {"fingerprint": fingerprint, "git_commit": git["commit"], "date": str(date.today())}
-        )
+    previous = json.loads(report_path.read_text()) if report_path.exists() else None
+    ledger = _ledger(previous, recorded, fingerprints, git)
 
-    version = f"{date.today():%Y%m%d}-{(git['commit'] or 'nogit')[:7]}"
-    training_rows = frame  # everything up to the end of the hold-out
-    card = {
-        "model": "match_outcome",
-        "version": version,
-        "question": (
-            "Can pre-match form — goals, xG, xPTS — predict H/D/A better than league "
-            "base rates and Elo? (CLAUDE.md §8 #1)"
-        ),
-        "estimator": asdict(best) | {"name": best.name},
-        "features": predictors + ["competition_code"],
-        "training_range": {
-            "first_match": str(training_rows["as_of_date"].min().date()),
-            "last_match": str(training_rows["as_of_date"].max().date()),
-            "matches": len(training_rows),
-        },
-        "snapshot": features.snapshot,
-        "citation": features.citation(),
-        "selected_on": (
-            f"validation folds {plan.validation[0].label} to {plan.validation[-1].label}, "
-            "lowest ranked probability score"
-        ),
-        "holdout_scores": holdout["scores"],
-        "baselines": {"elo": asdict(best_elo)},
-        "git": git,
-        "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
-        "limitations": [
-            "Compared with league base rates and Elo only. Gold holds no betting odds, "
-            "so there is no market benchmark and no claim to beat one.",
-            "What the model uses is not what wins matches: no causal reading of its "
-            "coefficients or importances.",
-            "History starts in August 2024; a club's form counts from there (L7).",
-        ],
-    }
     report = {
         "model": "match_outcome",
         "citation": features.citation(),
@@ -256,28 +317,62 @@ def train_match_outcome(*, write: bool = True, validation_only: bool = False) ->
                 {"month": f.label, "train": len(f.train), "test": len(f.test)} for f in plan.holdout
             ],
             "holdout_season": plan.holdout_season,
-            "excluded_live_seasons": splits.plan(features.table("feat_match_outcome")).live_seasons,
+            "excluded_live_seasons": live_seasons,
         },
         "features": predictors,
         "validation": validation,
-        "selected": {"elo": asdict(best_elo), "model": asdict(best) | {"name": best.name}},
+        "selected": {m: v | {"name": methods[m][2](selected[m])} for m, v in recorded.items()},
         "holdout": holdout,
         "holdout_evaluations": ledger,
     }
 
     if write:
-        final = FormModel(best).fit(frame, y)
-        model_dir = REPO_ROOT / "models" / "match_outcome" / version
-        model_dir.mkdir(parents=True, exist_ok=True)
-        joblib.dump(
-            {
-                "model": final,
-                "elo_settings": best_elo,
-                "elo_forecast": EloForecast(best_elo).fit(elo_by_settings[best_elo], y),
+        version = f"{date.today():%Y%m%d}-{(git['commit'] or 'nogit')[:7]}"
+        finals = {
+            "model": {
+                "model": FormModel(selected["model"]).fit(frame, y),
+                "elo_settings": selected["elo"],
+                "elo_forecast": EloForecast(selected["elo"]).fit(
+                    elo_by_settings[selected["elo"]], y
+                ),
             },
-            model_dir / "model.joblib",
-        )
-        (model_dir / "model_card.json").write_text(_to_json(card))
+            "dc_goals": {"model": DixonColes(selected["dc_goals"]).fit(frame)},
+            "dc_xg": {"model": DixonColes(selected["dc_xg"]).fit(frame)},
+        }
+        for method, bundle in finals.items():
+            card = {
+                "model": CARD_NAMES[method],
+                "version": version,
+                "question": QUESTIONS[method],
+                "estimator": report["selected"][method],
+                "inputs": (
+                    predictors + ["competition_code"]
+                    if method == "model"
+                    else ["home_team_key", "away_team_key", "competition_code", "season"]
+                    + (["target_home_xg", "target_away_xg"] if method == "dc_xg" else [])
+                    + ["target_home_goals", "target_away_goals"]
+                ),
+                "training_range": {
+                    "first_match": str(frame["as_of_date"].min().date()),
+                    "last_match": str(frame["as_of_date"].max().date()),
+                    "matches": len(frame),
+                },
+                "snapshot": features.snapshot,
+                "citation": features.citation(),
+                "selected_on": (
+                    f"validation folds {plan.validation[0].label} to "
+                    f"{plan.validation[-1].label}, lowest ranked probability score"
+                ),
+                "holdout_scores": {k: holdout["scores"][k] for k in ("base_rates", "elo", method)},
+                "holdout_evaluations": ledger[method],
+                "git": git,
+                "created_at": datetime.now(UTC).isoformat(timespec="seconds"),
+                "limitations": LIMITATIONS,
+            }
+            model_dir = REPO_ROOT / "models" / CARD_NAMES[method] / version
+            model_dir.mkdir(parents=True, exist_ok=True)
+            joblib.dump(bundle, model_dir / "model.joblib")
+            (model_dir / "model_card.json").write_text(_to_json(card))
         report_path.parent.mkdir(exist_ok=True)
         report_path.write_text(_to_json(report))
 
@@ -289,8 +384,7 @@ def summary(report: dict) -> str:
     h = report["holdout"]
     lines = [
         f"match_outcome — hold-out {h['season']}, {h['n']:,} matches",
-        f"selected: {report['selected']['model']['name']}, "
-        f"elo k={report['selected']['elo']['k']:g}",
+        *(f"selected {m}: {v['name']}" for m, v in report["selected"].items()),
         "",
         f"{'':12}{'RPS':>9}{'log loss':>10}{'Brier':>9}",
     ]
@@ -308,8 +402,8 @@ def summary(report: dict) -> str:
             f"draws, {name}: actual {d['actual_draw_rate']:.3f}, mean predicted "
             f"{d['mean_predicted_draw']:.3f}, most likely in {d['draw_most_likely_share']:.1%}"
         )
-    looks = len(report["holdout_evaluations"])
-    lines.append(f"\nhold-out evaluations recorded: {looks}")
+    looks = {m: len(v) for m, v in report["holdout_evaluations"].items()}
+    lines.append(f"\nhold-out evaluations recorded, per method: {looks}")
     return "\n".join(lines)
 
 
@@ -329,7 +423,8 @@ def main() -> None:
                 print(
                     f"{r['name']:60} RPS {r['rps']:.4f}  log loss {r['log_loss']:.4f}  n {r['n']}"
                 )
-        print("selected:", result["selected"])
+        for method, name in result["selected"].items():
+            print(f"selected {method}: {name}")
         return
     print(summary(train_match_outcome()))
 

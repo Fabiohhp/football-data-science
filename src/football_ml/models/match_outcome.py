@@ -38,8 +38,10 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from football_ml.evaluate import OUTCOMES
 
-# Columns with a side prefix that are NOT inputs: identifiers, and the target (L3).
-NOT_FEATURES = frozenset({"home_team_key", "away_team_key", "home_goals", "away_goals"})
+# Columns with a side prefix that are NOT inputs. The targets cannot be among them:
+# feat_match_outcome names every target `target_*` (and `result`), so the prefix
+# match below never reaches one (L3). tests/test_match_outcome_model.py pins that.
+NOT_FEATURES = frozenset({"home_team_key", "away_team_key"})
 CATEGORICAL = ["competition_code"]
 SEED = 0
 

@@ -12,30 +12,35 @@ The last part of a three-repository portfolio:
 | 2 — Analytics & BI | [`football-data-analytics`](../football-data-analytics) | metrics layer, analyses, dashboard |
 | **3 — Machine Learning** | **this repository** | models and their evaluation |
 
-> **Status: phases 0–2 of 6.** Features, walk-forward splits, two baselines and model #1
-> are built. Models #2–#4 are not. The design brief, including the leakage traps every
-> model here must avoid, is [`CLAUDE.md`](CLAUDE.md).
+> **Status: phases 0–3 of 6.** Features, walk-forward splits, two baselines and two
+> match models are built. The xG shot model and prospective scoring are not built yet.
+> The design brief, including the leakage traps every model here must avoid, is
+> [`CLAUDE.md`](CLAUDE.md).
 
-## First result: pre-match form does not beat Elo
-
-Question: can a team's recent form (points, goals, non-penalty xG and xPTS over the last
-five matches, plus season-to-date and last season) predict home/draw/away better than
-league base rates and an Elo rating?
+## Results so far: nothing beats Elo measurably, but goals models are better calibrated
 
 Scored once on the **2025/26 season (1,752 matches)**, walked forward month by month.
-Settings were chosen on 2024/25 only. Lower is better:
+Each model's settings were chosen on 2024/25 only. Lower is better:
 
-| | ranked probability score |
-|---|---|
-| league base rates | 0.2293 |
-| **Elo rating** | **0.2076** |
-| form model (logistic regression) | 0.2091 |
+| | ranked probability score | log loss |
+|---|---|---|
+| league base rates | 0.2293 | 1.0731 |
+| Elo rating | 0.2076 | 1.0103 |
+| form model (logistic regression on last-5 form, xG, xPTS) | 0.2091 | 1.0225 |
+| Dixon-Coles, fitted to goals | 0.2054 | 1.0040 |
+| Dixon-Coles, fitted to xG | **0.2045** | **1.0026** |
 
-**The form model and Elo cannot be told apart.** The difference is +0.0015, with a 95%
-paired bootstrap interval of −0.0030 to +0.0058. Both beat base rates clearly. Recent
-xG adds nothing measurable to a rating that has already absorbed every result. Both
-models are also overconfident about favourites. Full numbers, calibration and the caveats
-are in [`reports/match_outcome.json`](reports/match_outcome.json).
+- **Against Elo, no model is measurably better.** Every 95% paired bootstrap interval of
+  the difference straddles zero. For Dixon-Coles on xG it is −0.0070 to +0.0008.
+- **Modelling goals beats modelling the result on log loss.** Dixon-Coles on goals against
+  the form model: −0.0185, interval −0.0331 to −0.0039.
+- **Fitting to xG instead of goals** cannot be told apart on the hold-out, although it
+  led clearly on validation.
+- **The goals models are calibrated; Elo and the form model are not.** Where Elo gives
+  an away win 65%, it happens 52% of the time. Where Dixon-Coles gives 64%, it happens 64%.
+
+Full numbers, calibration tables and caveats are in
+[`reports/match_outcome.json`](reports/match_outcome.json) and CLAUDE.md §12.
 
 These are comparisons against the baselines shown. Gold has no betting odds, so nothing
 here is compared with, or claims to beat, the market.

@@ -1,15 +1,51 @@
 {
   "model": "match_outcome",
-  "version": "20260929-a187333",
+  "version": "20260930-a480372",
   "question": "Can pre-match form — goals, xG, xPTS — predict H/D/A better than league base rates and Elo? (CLAUDE.md §8 #1)",
   "estimator": {
     "family": "logistic",
     "params": {
       "C": 0.03
     },
+    "features": [
+      "home_matches_of_history",
+      "away_matches_of_history",
+      "home_form_matches",
+      "away_form_matches",
+      "home_form_prior_season_matches",
+      "away_form_prior_season_matches",
+      "home_form_points_per_match",
+      "away_form_points_per_match",
+      "home_form_goals_for",
+      "away_form_goals_for",
+      "home_form_goals_against",
+      "away_form_goals_against",
+      "home_form_understat_matches",
+      "away_form_understat_matches",
+      "home_form_npxg_for",
+      "away_form_npxg_for",
+      "home_form_npxg_against",
+      "away_form_npxg_against",
+      "home_form_xpts",
+      "away_form_xpts",
+      "home_season_matches",
+      "away_season_matches",
+      "home_season_points_per_match",
+      "away_season_points_per_match",
+      "home_season_understat_matches",
+      "away_season_understat_matches",
+      "home_season_npxg_difference",
+      "away_season_npxg_difference",
+      "home_prior_season_matches",
+      "away_prior_season_matches",
+      "home_prior_season_points_per_match",
+      "away_prior_season_points_per_match",
+      "home_prior_season_npxg_difference",
+      "away_prior_season_npxg_difference"
+    ],
     "name": "logistic(C=0.03)"
   },
-  "features": [
+  "inputs": [
     "home_matches_of_history",
     "away_matches_of_history",
     "home_form_matches",
@@ -82,22 +118,22 @@
       "n": 1752
     }
   },
-  "baselines": {
-    "elo": {
-      "k": 30.0,
-      "home_advantage": 60.0,
-      "initial": 1500.0,
-      "promoted_from_bottom": 3
+  "holdout_evaluations": [
+    {
+      "fingerprint": "1f1d3461e13c68ff",
+      "git_commit": "a1873333bd77949bcd0811edd8ed07024dcd3f89",
+      "date": "2026-09-29",
+      "note": "carried over from the combined ledger of the first report"
     }
-  },
+  ],
   "git": {
-    "commit": "a1873333bd77949bcd0811edd8ed07024dcd3f89",
+    "commit": "a480372f180ecb7dad88f5a35b13836cd7268568",
     "dirty": true
   },
-  "created_at": "2026-09-29T22:56:52+00:00",
+  "created_at": "2026-09-30T23:03:13+00:00",
   "limitations": [
     "Compared with league base rates and Elo only. Gold holds no betting odds, so there is no market benchmark and no claim to beat one.",
-    "What the model uses is not what wins matches: no causal reading of its coefficients or importances.",
-    "History starts in August 2024; a club's form counts from there (L7)."
+    "What a model uses is not what wins matches: no causal reading of its parameters, coefficients or importances.",
+    "History starts in August 2024; a club's record counts from there (L7)."
   ]
 }

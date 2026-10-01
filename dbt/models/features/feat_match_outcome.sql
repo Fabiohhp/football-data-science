@@ -3,8 +3,12 @@
 --
 -- Built from two copies of feat_team_form joined to the same match, through the
 -- `both_sides` macro, so every feature arrives as a home_/away_ pair (CLAUDE.md §6).
--- The target columns — goals and result — describe the match itself and are never
--- features (L3); they sit at the end, apart from the inputs.
+-- The target columns describe the match itself and are never features (L3). They
+-- carry a `target_` prefix so that nothing selecting features by the home_/away_
+-- prefix can pick one up — model #1 does exactly that. `result` is the H/D/A target.
+-- target_*_xg is the xG of THIS match, for the models that are fitted to xG instead of
+-- goals (model #2): a training target on past rows, never an input. Null when the
+-- sources did not pair the match (Part 2 trap 7) — never zero.
 
 with sides as (
 
@@ -12,6 +16,7 @@ with sides as (
         tm.match_key,
         tm.is_home,
         tm.goals_for,
+        tm.xg_for,
         form.*
     from {{ ref('src_team_matches') }} as tm
     join {{ ref('feat_team_form') }} as form
@@ -34,9 +39,11 @@ select
                                                   as short_history,
     greatest(home.max_input_date, away.max_input_date) as max_input_date,
 
-    -- Target. H/D/A in that order is the ordering the ranked probability score uses.
-    home.goals_for                                as home_goals,
-    away.goals_for                                as away_goals,
+    -- Targets. H/D/A in that order is the ordering the ranked probability score uses.
+    home.goals_for                                as target_home_goals,
+    away.goals_for                                as target_away_goals,
+    home.xg_for                                   as target_home_xg,
+    away.xg_for                                   as target_away_xg,
     case
         when home.goals_for > away.goals_for then 'H'
         when home.goals_for = away.goals_for then 'D'
