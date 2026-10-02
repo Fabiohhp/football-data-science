@@ -18,6 +18,13 @@ away:
   the committed report reproduces.
 
 Outcome order is always ``OUTCOMES = ("H", "D", "A")``: column 0 is the home win.
+
+Shots (model #3) are binary — goal or not — and have their own small set:
+:func:`binary_scores` (log loss and Brier, with AUC beside them for discrimination)
+and :func:`binary_calibration`. Their comparisons pass ``groups`` to
+:func:`paired_difference`, which then resamples **matches**, not shots: shots within a
+match share a game state and a goalkeeper, so they are not independent (L5), and
+resampling them one by one would make every interval too narrow.
 """
 
 from __future__ import annotations
@@ -25,6 +32,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 
 import numpy as np
+from sklearn.metrics import roc_auc_score
 
 OUTCOMES = ("H", "D", "A")
 DEFAULT_SEED = 20260920  # Part 2's stats.DEFAULT_SEED, so the portfolio shares one
@@ -135,6 +143,73 @@ def draw_summary(probs, y) -> dict[str, float]:
     }
 
 
+# --- binary outcomes: shots -------------------------------------------------------------
+
+# Bin edges for xG calibration. Most shots are below 0.1, so fixed 0.1-wide bins would
+# put four in five shots into the first one and say nothing about it.
+XG_BIN_EDGES = (0.0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.15, 0.2, 0.3, 0.4, 0.6, 0.8, 1.0)
+
+
+def _check_binary(p, y) -> tuple[np.ndarray, np.ndarray]:
+    p = np.asarray(p, dtype=float)
+    y = np.asarray(y).astype(int)
+    if p.ndim != 1 or p.shape != y.shape:
+        raise ValueError(f"need two equal-length 1-d arrays, got {p.shape} and {y.shape}")
+    if (p < 0).any() or (p > 1).any():
+        raise ValueError("probabilities must lie in [0, 1]")
+    if not set(np.unique(y)) <= {0, 1}:
+        raise ValueError("outcomes must be 0 or 1")
+    return p, y
+
+
+def binary_log_loss(p, y) -> np.ndarray:
+    p, y = _check_binary(p, y)
+    p = np.clip(p, _EPS, 1 - _EPS)
+    return -(y * np.log(p) + (1 - y) * np.log(1 - p))
+
+
+def binary_brier(p, y) -> np.ndarray:
+    p, y = _check_binary(p, y)
+    return (p - y) ** 2
+
+
+BINARY_METRICS = {"log_loss": binary_log_loss, "brier": binary_brier}
+
+
+def binary_scores(p, y) -> dict[str, float]:
+    """Mean log loss and Brier, AUC, and predicted against observed goal rate."""
+    p, y = _check_binary(p, y)
+    return {
+        "log_loss": float(binary_log_loss(p, y).mean()),
+        "brier": float(binary_brier(p, y).mean()),
+        "auc": float(roc_auc_score(y, p)) if 0 < y.sum() < len(y) else float("nan"),
+        "mean_predicted": float(p.mean()),
+        "observed_rate": float(y.mean()),
+        "n": len(y),
+    }
+
+
+def binary_calibration(p, y, *, edges=XG_BIN_EDGES) -> list[dict]:
+    """Reliability table: mean predicted against observed rate, per probability bin."""
+    p, y = _check_binary(p, y)
+    edges = np.asarray(edges, dtype=float)
+    which = np.clip(np.digitize(p, edges[1:-1]), 0, len(edges) - 2)
+    rows = []
+    for b in range(len(edges) - 1):
+        mask = which == b
+        if mask.any():
+            rows.append(
+                {
+                    "bin_low": round(float(edges[b]), 10),
+                    "bin_high": round(float(edges[b + 1]), 10),
+                    "n": int(mask.sum()),
+                    "mean_predicted": float(p[mask].mean()),
+                    "observed_rate": float(y[mask].mean()),
+                }
+            )
+    return rows
+
+
 @dataclass(frozen=True)
 class Difference:
     """Mean per-match score difference, candidate − reference, with a paired interval.
@@ -153,6 +228,7 @@ class Difference:
     resamples: int
     confidence: float
     seed: int
+    groups: int | None = None  # resampled units, when they are matches rather than rows
 
     @property
     def verdict(self) -> str:
@@ -176,12 +252,19 @@ def paired_difference(
     resamples: int = DEFAULT_RESAMPLES,
     seed: int = DEFAULT_SEED,
     confidence: float = DEFAULT_CONFIDENCE,
+    groups=None,
 ) -> Difference:
-    """Paired bootstrap over matches of ``mean(candidate − reference)``.
+    """Paired bootstrap of ``mean(candidate − reference)``.
 
-    Takes per-match losses — the output of :func:`rps` and friends — for the same
-    matches in the same order. Matches are resampled with replacement and each
-    resample's mean difference recorded; the interval is the percentile interval.
+    Takes per-row losses — the output of :func:`rps`, :func:`binary_log_loss` and
+    friends — for the same rows in the same order. Rows are resampled with
+    replacement and each resample's mean difference recorded; the interval is the
+    percentile interval.
+
+    With ``groups`` (one label per row — a match id for shots) whole groups are
+    resampled instead, and each resample's mean is the total difference over the
+    rows drawn divided by their number: a cluster bootstrap, for rows that are not
+    independent within a group.
     """
     a = np.asarray(candidate_losses, dtype=float)
     b = np.asarray(reference_losses, dtype=float)
@@ -189,12 +272,22 @@ def paired_difference(
         raise ValueError(f"need two equal-length 1-d arrays, got {a.shape} and {b.shape}")
     diff = a - b
     n = len(diff)
+    if groups is None:
+        sums, counts = diff, np.ones(n)
+    else:
+        labels, inverse = np.unique(np.asarray(groups), return_inverse=True)
+        if len(inverse) != n:
+            raise ValueError("groups must have one label per row")
+        sums = np.bincount(inverse, weights=diff)
+        counts = np.bincount(inverse).astype(float)
+    units = len(sums)
     rng = np.random.default_rng(seed)
     means = np.empty(resamples)
     block = 1_000  # resample in blocks: 10,000 × n at once is needlessly large
     for start in range(0, resamples, block):
         size = min(block, resamples - start)
-        means[start : start + size] = diff[rng.integers(0, n, size=(size, n))].mean(axis=1)
+        draw = rng.integers(0, units, size=(size, units))
+        means[start : start + size] = sums[draw].sum(axis=1) / counts[draw].sum(axis=1)
     tail = 100 * (1 - confidence) / 2
     low, high = np.percentile(means, [tail, 100 - tail])
     return Difference(
@@ -208,4 +301,5 @@ def paired_difference(
         resamples=resamples,
         confidence=confidence,
         seed=seed,
+        groups=None if groups is None else units,
     )

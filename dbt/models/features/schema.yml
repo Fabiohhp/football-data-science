@@ -72,3 +72,35 @@ models:
         description: This match's xG — a training target for model #2, never an input. Null when unpaired (trap 7).
       - name: target_away_xg
         description: As target_home_xg, for the away side. Null exactly when target_home_xg is.
+
+  - name: feat_shots
+    description: >
+      **Grain: one row per non-penalty, non-own-goal shot. As-of: the shot itself**
+      (`as_of_date` = match_date). Inputs are the shot's own attributes at that moment
+      — no other row is read, so `max_input_date` is null. The leakage guard is the
+      column allowlist (`assert_shot_features_are_on_the_allowlist`): the outcome and
+      Understat's xG never become inputs (L9). Distances are metres on a
+      `pitch_length_m` × `pitch_width_m` pitch. Gold carries no `last_action` (L10).
+    data_tests:
+      - assert_no_feature_reads_the_future
+    columns:
+      - name: shot_key
+        data_tests: [unique, not_null]
+      - name: understat_match_id
+        description: The split and bootstrap key — shots are grouped by match, never split (L5).
+        data_tests: [not_null]
+      - name: situation
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [OpenPlay, FromCorner, SetPiece, DirectFreekick]
+      - name: shot_type
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [RightFoot, LeftFoot, Head, OtherBodyPart]
+      - name: benchmark_understat_xg
+        description: Understat's xG — the benchmark (L9). Never an input.
+        data_tests: [not_null]
+      - name: target_is_goal
+        data_tests: [not_null]

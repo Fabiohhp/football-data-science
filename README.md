@@ -12,9 +12,9 @@ The last part of a three-repository portfolio:
 | 2 — Analytics & BI | [`football-data-analytics`](../football-data-analytics) | metrics layer, analyses, dashboard |
 | **3 — Machine Learning** | **this repository** | models and their evaluation |
 
-> **Status: phases 0–3 of 6.** Features, walk-forward splits, two baselines and two
-> match models are built. The xG shot model and prospective scoring are not built yet.
-> The design brief, including the leakage traps every model here must avoid, is
+> **Status: phases 0–4 of 6.** Features, walk-forward splits, baselines, two match
+> models and a shot xG model are built. Prospective scoring is not built yet. The design
+> brief, including the leakage traps every model here must avoid, is
 > [`CLAUDE.md`](CLAUDE.md).
 
 ## Results so far: nothing beats Elo measurably, but goals models are better calibrated
@@ -45,6 +45,29 @@ Full numbers, calibration tables and caveats are in
 These are comparisons against the baselines shown. Gold has no betting odds, so nothing
 here is compared with, or claims to beat, the market.
 
+## The shot model: past distance and angle, short of Understat
+
+How close can an xG model get to Understat's using what Gold carries: location,
+situation, body part, assist? Scored once on 2025/26 (43,457 non-penalty shots).
+Intervals come from resampling matches, not shots. Lower log loss is better; higher AUC
+means better at telling goals from misses:
+
+| | log loss | AUC |
+|---|---|---|
+| distance + angle | 0.2912 | 0.719 |
+| **this model** | **0.2802** | **0.757** |
+| Understat's xG, recalibrated | 0.2563 | 0.799 |
+
+- **Better than distance and angle:** −0.0111, interval −0.0127 to −0.0095.
+- **Clearly short of Understat:** +0.0238, interval +0.0218 to +0.0259.
+- **The gap vanishes on direct free kicks**, the one situation with no action before the
+  shot. It is widest in open play and from corners. That is consistent with what Gold
+  lacks: the pass or cross before the shot, which Understat's model uses. It is a reason
+  to add that column upstream, not a proof that it is the whole gap.
+- **Understat's published xG runs high on these seasons:** 0.115 per shot against 0.099
+  scored. The comparison is therefore made against it recalibrated, so the model doesn't
+  win on calibration it got for free.
+
 ## Running it
 
 Needs the three repositories side by side and Part 2's marts built.
@@ -55,7 +78,8 @@ uv sync --extra dev
 
 uv run pytest -q
 uv run dbt build --project-dir dbt --profiles-dir dbt    # writes data/features.duckdb
-uv run python -m football_ml.train match_outcome         # report + model card
+uv run python -m football_ml.train match_outcome         # report + model cards
+uv run python -m football_ml.train shot_xg               # the shot model
 ```
 
 Without real data, point both repositories at Part 2's synthetic fixture, as CI does:

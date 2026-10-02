@@ -85,3 +85,59 @@ def test_a_feature_model_without_the_leakage_test_fails_the_build(tmp_path, dbt_
 
     assert not result.success
     assert re.search(r"FAIL 1 assert_every_feature_model_is_leakage_tested", result.log), result.log
+
+
+SHOT_SQL = ("models", "features", "feat_shots.sql")
+
+
+@pytest.mark.parametrize(
+    ("leak", "old", "new", "catcher"),
+    [
+        (
+            "L9-style: the shot's outcome becomes a column",
+            "    is_home,\n    minute,\n",
+            "    is_home,\n    minute,\n    result as shot_result,\n",
+            "assert_shot_features_are_on_the_allowlist",
+        ),
+        (
+            "trap 10: penalties let into the shot model",
+            "    where not is_penalty\n      and result <> 'OwnGoal'",
+            "    where result <> 'OwnGoal'",
+            "assert_feat_shots_has_every_eligible_shot",
+        ),
+        (
+            "trap 11: own goals let into the shot model",
+            "    where not is_penalty\n      and result <> 'OwnGoal'",
+            "    where not is_penalty",
+            "assert_feat_shots_has_every_eligible_shot",
+        ),
+    ],
+)
+def test_the_shot_guards_catch(tmp_path, dbt_build, leak, old, new, catcher):
+    make_part2(tmp_path / "part2")
+    project = copy_project(tmp_path / "dbt")
+    sql = project.joinpath(*SHOT_SQL)
+    text = sql.read_text()
+    assert text.count(old) == 1, f"expected exactly one {old!r} in feat_shots.sql"
+    sql.write_text(text.replace(old, new))
+
+    result = dbt_build(project)
+
+    assert not result.success, f"{leak}: the build passed"
+    assert re.search(rf"FAIL \d+ {catcher}", result.log), f"{leak}: not caught by {catcher}"
+
+
+def test_a_feature_for_one_side_only_fails_the_build(tmp_path, dbt_build):
+    """CLAUDE.md §6: the model must never see a feature for one side it lacks for the other."""
+    make_part2(tmp_path / "part2")
+    project = copy_project(tmp_path / "dbt")
+    sql = project / "models" / "features" / "feat_match_outcome.sql"
+    old = "    {{ both_sides(team_form_features()) }},\n"
+    text = sql.read_text()
+    assert text.count(old) == 1
+    sql.write_text(text.replace(old, old + "    home.season_matches as home_lopsided,\n"))
+
+    result = dbt_build(project)
+
+    assert not result.success
+    assert re.search(r"FAIL 1 assert_features_come_in_home_away_pairs", result.log), result.log

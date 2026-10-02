@@ -20,7 +20,9 @@ the situations the feature layer has to get right:
 - a **match with no xG** in 2025/26, null on both rows (Part 2 trap 7);
 - a **partial third season**, which splits.py must treat as live;
 - a ``mart_team_season`` row for **every** season, including the one being predicted,
-  so the L2 leak (joining the current season's summary) has something to leak.
+  so the L2 leak (joining the current season's summary) has something to leak;
+- **shots** for every match, including a **penalty** and an **own goal** in some, which
+  feat_shots must exclude (Part 2 traps 10 and 11).
 
 What it does not try to be is Part 2's own fixture, which carries the Gold-level traps
 (awarded and postponed matches, split fixtures). Part 2 handles those before this
@@ -139,8 +141,81 @@ def team_seasons(matches: list[dict]) -> list[dict]:
     return out
 
 
+def shots(matches: list[dict]) -> list[dict]:
+    """mart_shots rows: a handful per club per match, its goals among them.
+
+    Every fifth match also has a penalty, and every seventh an own goal — sitting at
+    the scorer's own end with 0.0 xG, as Understat records them.
+    """
+    rng = np.random.default_rng(20261001)
+    rows, shot_key = [], 0
+    for i, m in enumerate(matches):
+        attempts = int(rng.integers(4, 9))
+        for s in range(attempts):
+            shot_key += 1
+            x, y = rng.uniform(0.70, 0.99), rng.uniform(0.25, 0.75)
+            is_goal = s < m["goals_for"]
+            rows.append(
+                {
+                    "shot_key": shot_key,
+                    "understat_match_id": 1000 + m["match_key"],
+                    "match_key": m["match_key"],
+                    "match_date": m["match_date"],
+                    "season": m["season"],
+                    "competition_code": m["competition_code"],
+                    "team_key": m["team_key"],
+                    "is_home": m["is_home"],
+                    "assist_player_key": None if s % 3 == 0 else 500 + s,
+                    "minute": int(rng.integers(1, 95)),
+                    "x": round(x, 3),
+                    "y": round(y, 3),
+                    "xg": round(min(0.95, 0.03 + 0.5 * (x - 0.7) ** 2 * 10), 4),
+                    "result": (
+                        "Goal"
+                        if is_goal
+                        else str(rng.choice(["MissedShots", "SavedShot", "BlockedShot"]))
+                    ),
+                    "situation": ["OpenPlay", "FromCorner", "SetPiece", "DirectFreekick"][s % 4],
+                    "shot_type": ["RightFoot", "LeftFoot", "Head", "OtherBodyPart"][s % 4],
+                    "is_goal": is_goal,
+                    "is_penalty": False,
+                }
+            )
+        extras = []
+        if i % 5 == 0:
+            extras.append(("Penalty", 0.885, 0.5, 0.7561, "SavedShot", True))
+        if i % 7 == 0:
+            extras.append(("OpenPlay", 0.04, 0.48, 0.0, "OwnGoal", False))
+        for situation, x, y, xg, result, is_penalty in extras:
+            shot_key += 1
+            rows.append(
+                {
+                    "shot_key": shot_key,
+                    "understat_match_id": 1000 + m["match_key"],
+                    "match_key": m["match_key"],
+                    "match_date": m["match_date"],
+                    "season": m["season"],
+                    "competition_code": m["competition_code"],
+                    "team_key": m["team_key"],
+                    "is_home": m["is_home"],
+                    "assist_player_key": None,
+                    "minute": 50,
+                    "x": x,
+                    "y": y,
+                    "xg": xg,
+                    "result": result,
+                    "situation": situation,
+                    "shot_type": "RightFoot",
+                    "is_goal": False,
+                    "is_penalty": is_penalty,
+                }
+            )
+    return rows
+
+
 ROWS = {"int_team_matches": team_matches()}
 ROWS["mart_team_season"] = team_seasons(ROWS["int_team_matches"])
+ROWS["mart_shots"] = shots(ROWS["int_team_matches"])
 MATCHES = len({r["match_key"] for r in ROWS["int_team_matches"]})
 
 
@@ -204,7 +279,7 @@ def make_part2(
         "tables": {
             "fact_matches": {"rows": matches_in_manifest},
             "fact_player_events": {"rows": 0},
-            "fact_shots": {"rows": 0},
+            "fact_shots": {"rows": len(ROWS["mart_shots"])},
         },
     }
     (root / "data" / "gold" / "manifest.json").write_text(json.dumps(manifest, indent=2))

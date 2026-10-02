@@ -1,0 +1,104 @@
+{
+  "model": "shot_xg",
+  "version": "20261001-e1399d6",
+  "question": "How close can a location-and-context xG model get to Understat's, with what Gold carries? (CLAUDE.md §8 #3)",
+  "estimator": {
+    "family": "logistic",
+    "params": {
+      "C": 0.1
+    },
+    "features": [
+      "distance_m",
+      "angle_rad",
+      "goal_line_m",
+      "lateral_m",
+      "minute",
+      "is_assisted",
+      "is_home",
+      "situation",
+      "shot_type"
+    ],
+    "name": "logistic(C=0.1)"
+  },
+  "inputs": [
+    "distance_m",
+    "angle_rad",
+    "goal_line_m",
+    "lateral_m",
+    "minute",
+    "is_assisted",
+    "is_home",
+    "situation",
+    "shot_type"
+  ],
+  "excludes": "penalties and own goals (feat_shots); see the report's penalties block",
+  "training_range": {
+    "first_match": "2024-08-15",
+    "last_match": "2026-05-24",
+    "shots": 86565,
+    "matches": 3503
+  },
+  "snapshot": {
+    "exported_at": "2026-09-20T13:41:36+00:00",
+    "match_date_min": "2024-08-15",
+    "match_date_max": "2026-09-19",
+    "gold_matches": 3733,
+    "gold_player_events": 115410,
+    "gold_shots": 94034,
+    "gold_source": "football@localhost:5432/football_dw (gold schema)"
+  },
+  "citation": "features built from the Gold snapshot exported 2026-09-20T13:41:36+00:00, matches 2024-08-15 to 2026-09-19 (3,733 matches, 94,034 shots)",
+  "selected_on": "validation folds 2024-11 to 2025-05, lowest log loss",
+  "holdout_scores": {
+    "baseline": {
+      "log_loss": 0.29123,
+      "brier": 0.08177,
+      "auc": 0.7191,
+      "mean_predicted": 0.10127,
+      "observed_rate": 0.09867,
+      "n": 43457
+    },
+    "model": {
+      "log_loss": 0.28016,
+      "brier": 0.07907,
+      "auc": 0.75701,
+      "mean_predicted": 0.10069,
+      "observed_rate": 0.09867,
+      "n": 43457
+    },
+    "understat": {
+      "log_loss": 0.25891,
+      "brier": 0.07328,
+      "auc": 0.79915,
+      "mean_predicted": 0.11514,
+      "observed_rate": 0.09867,
+      "n": 43457
+    },
+    "understat_recalibrated": {
+      "log_loss": 0.25635,
+      "brier": 0.07239,
+      "auc": 0.79913,
+      "mean_predicted": 0.10007,
+      "observed_rate": 0.09867,
+      "n": 43457
+    }
+  },
+  "holdout_evaluations": [
+    {
+      "fingerprint": "c3f0521daeabf623",
+      "git_commit": "e1399d694a40432fe4c887d960e5171c1c314437",
+      "date": "2026-10-01"
+    }
+  ],
+  "missing_from_gold": "Gold carries no last_action — the action before the shot (cross, through ball, rebound), which Understat parses and its model uses. Part 1 has it in Silver as last_action; it is not in Gold's fact_shots. Every gap to Understat below includes what that column would explain (CLAUDE.md §5, L10).",
+  "git": {
+    "commit": "e1399d694a40432fe4c887d960e5171c1c314437",
+    "dirty": true
+  },
+  "created_at": "2026-10-01T22:28:51+00:00",
+  "limitations": [
+    "Gold carries no last_action — the action before the shot (cross, through ball, rebound), which Understat parses and its model uses. Part 1 has it in Silver as last_action; it is not in Gold's fact_shots. Every gap to Understat below includes what that column would explain (CLAUDE.md §5, L10).",
+    "Understat's xG is the benchmark, never an input (L9).",
+    "Penalties are not modelled; own goals are not shots."
+  ]
+}

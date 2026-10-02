@@ -153,3 +153,19 @@ def plan(frame: pd.DataFrame, *, burn_in_months: int = BURN_IN_MONTHS) -> Plan:
         holdout_season=holdout_season,
         live_seasons=sorted(set(frame.loc[dates >= holdout_end, "season"])),
     )
+
+
+def aligned(plan: Plan, dates: pd.Series) -> Plan:
+    """The same periods and month boundaries as ``plan``, for other rows — shots.
+
+    Model #3 is scored on the same months as the match models, so its validation and
+    hold-out mean the same thing. Every shot of a match shares its date, so a match is
+    never split between training and test (L5); rows after the hold-out (the live
+    season) fall in no fold.
+    """
+    return Plan(
+        validation=monthly_folds(dates, plan.validation[0].test_start, plan.holdout_start),
+        holdout=monthly_folds(dates, plan.holdout_start, plan.holdout[-1].test_end),
+        holdout_season=plan.holdout_season,
+        live_seasons=plan.live_seasons,
+    )

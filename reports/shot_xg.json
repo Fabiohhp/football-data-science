@@ -1,0 +1,929 @@
+{
+  "model": "shot_xg",
+  "question": "How close can a location-and-context xG model get to Understat's, with what Gold carries? (CLAUDE.md §8 #3)",
+  "citation": "features built from the Gold snapshot exported 2026-09-20T13:41:36+00:00, matches 2024-08-15 to 2026-09-19 (3,733 matches, 94,034 shots)",
+  "git": {
+    "commit": "e1399d694a40432fe4c887d960e5171c1c314437",
+    "dirty": true
+  },
+  "plan": {
+    "validation_folds": [
+      {
+        "month": "2024-11",
+        "train": 11459,
+        "test": 4016
+      },
+      {
+        "month": "2024-12",
+        "train": 15475,
+        "test": 4821
+      },
+      {
+        "month": "2025-01",
+        "train": 20296,
+        "test": 4515
+      },
+      {
+        "month": "2025-02",
+        "train": 24811,
+        "test": 4749
+      },
+      {
+        "month": "2025-03",
+        "train": 29560,
+        "test": 4038
+      },
+      {
+        "month": "2025-04",
+        "train": 33598,
+        "test": 4945
+      },
+      {
+        "month": "2025-05",
+        "train": 38543,
+        "test": 4565
+      }
+    ],
+    "holdout_folds": [
+      {
+        "month": "2025-08",
+        "train": 43108,
+        "test": 3003
+      },
+      {
+        "month": "2025-09",
+        "train": 46111,
+        "test": 3822
+      },
+      {
+        "month": "2025-10",
+        "train": 49933,
+        "test": 4040
+      },
+      {
+        "month": "2025-11",
+        "train": 53973,
+        "test": 4616
+      },
+      {
+        "month": "2025-12",
+        "train": 58589,
+        "test": 4183
+      },
+      {
+        "month": "2026-01",
+        "train": 62772,
+        "test": 5569
+      },
+      {
+        "month": "2026-02",
+        "train": 68341,
+        "test": 4768
+      },
+      {
+        "month": "2026-03",
+        "train": 73109,
+        "test": 4163
+      },
+      {
+        "month": "2026-04",
+        "train": 77272,
+        "test": 4500
+      },
+      {
+        "month": "2026-05",
+        "train": 81772,
+        "test": 4793
+      }
+    ],
+    "holdout_season": "2025/26",
+    "excluded_live_seasons": [
+      "2026/27"
+    ],
+    "selected_on": "validation log loss"
+  },
+  "features": [
+    "distance_m",
+    "angle_rad",
+    "goal_line_m",
+    "lateral_m",
+    "minute",
+    "is_assisted",
+    "is_home",
+    "situation",
+    "shot_type"
+  ],
+  "validation": {
+    "baseline": [
+      {
+        "name": "baseline",
+        "log_loss": 0.29714,
+        "brier": 0.08375,
+        "auc": 0.71926,
+        "mean_predicted": 0.10354,
+        "observed_rate": 0.10253,
+        "n": 31649
+      }
+    ],
+    "model": [
+      {
+        "name": "logistic(C=0.01)",
+        "log_loss": 0.28573,
+        "brier": 0.08094,
+        "auc": 0.75835,
+        "mean_predicted": 0.10396,
+        "observed_rate": 0.10253,
+        "n": 31649
+      },
+      {
+        "name": "logistic(C=0.1)",
+        "log_loss": 0.28508,
+        "brier": 0.08088,
+        "auc": 0.76133,
+        "mean_predicted": 0.10411,
+        "observed_rate": 0.10253,
+        "n": 31649
+      },
+      {
+        "name": "logistic(C=1.0)",
+        "log_loss": 0.28516,
+        "brier": 0.08089,
+        "auc": 0.76157,
+        "mean_predicted": 0.10423,
+        "observed_rate": 0.10253,
+        "n": 31649
+      },
+      {
+        "name": "boosting(learning_rate=0.05, max_iter=200, max_leaf_nodes=15)",
+        "log_loss": 0.28535,
+        "brier": 0.08107,
+        "auc": 0.76036,
+        "mean_predicted": 0.10406,
+        "observed_rate": 0.10253,
+        "n": 31649
+      },
+      {
+        "name": "boosting(learning_rate=0.05, max_iter=200, max_leaf_nodes=31)",
+        "log_loss": 0.28804,
+        "brier": 0.08151,
+        "auc": 0.75521,
+        "mean_predicted": 0.10352,
+        "observed_rate": 0.10253,
+        "n": 31649
+      },
+      {
+        "name": "boosting(learning_rate=0.05, max_iter=400, max_leaf_nodes=15)",
+        "log_loss": 0.28786,
+        "brier": 0.0815,
+        "auc": 0.7566,
+        "mean_predicted": 0.10377,
+        "observed_rate": 0.10253,
+        "n": 31649
+      },
+      {
+        "name": "boosting(learning_rate=0.05, max_iter=400, max_leaf_nodes=31)",
+        "log_loss": 0.29355,
+        "brier": 0.08241,
+        "auc": 0.7484,
+        "mean_predicted": 0.10249,
+        "observed_rate": 0.10253,
+        "n": 31649
+      }
+    ],
+    "understat": [
+      {
+        "name": "understat",
+        "log_loss": 0.26377,
+        "brier": 0.07512,
+        "auc": 0.80271,
+        "mean_predicted": 0.11789,
+        "observed_rate": 0.10253,
+        "n": 31649
+      }
+    ],
+    "understat_recalibrated": [
+      {
+        "name": "understat_recalibrated",
+        "log_loss": 0.26162,
+        "brier": 0.07428,
+        "auc": 0.80248,
+        "mean_predicted": 0.10328,
+        "observed_rate": 0.10253,
+        "n": 31649
+      }
+    ]
+  },
+  "selected": {
+    "baseline": {
+      "features": [
+        "distance_m",
+        "angle_rad"
+      ],
+      "name": "baseline"
+    },
+    "model": {
+      "family": "logistic",
+      "params": {
+        "C": 0.1
+      },
+      "features": [
+        "distance_m",
+        "angle_rad",
+        "goal_line_m",
+        "lateral_m",
+        "minute",
+        "is_assisted",
+        "is_home",
+        "situation",
+        "shot_type"
+      ],
+      "name": "logistic(C=0.1)"
+    },
+    "understat": {
+      "name": "understat"
+    },
+    "understat_recalibrated": {
+      "name": "understat_recalibrated"
+    }
+  },
+  "holdout": {
+    "season": "2025/26",
+    "shots": 43457,
+    "matches": 1752,
+    "scores": {
+      "baseline": {
+        "log_loss": 0.29123,
+        "brier": 0.08177,
+        "auc": 0.7191,
+        "mean_predicted": 0.10127,
+        "observed_rate": 0.09867,
+        "n": 43457
+      },
+      "model": {
+        "log_loss": 0.28016,
+        "brier": 0.07907,
+        "auc": 0.75701,
+        "mean_predicted": 0.10069,
+        "observed_rate": 0.09867,
+        "n": 43457
+      },
+      "understat": {
+        "log_loss": 0.25891,
+        "brier": 0.07328,
+        "auc": 0.79915,
+        "mean_predicted": 0.11514,
+        "observed_rate": 0.09867,
+        "n": 43457
+      },
+      "understat_recalibrated": {
+        "log_loss": 0.25635,
+        "brier": 0.07239,
+        "auc": 0.79913,
+        "mean_predicted": 0.10007,
+        "observed_rate": 0.09867,
+        "n": 43457
+      }
+    },
+    "comparisons": [
+      {
+        "metric": "log_loss",
+        "candidate": "model",
+        "reference": "baseline",
+        "value": -0.01107,
+        "low": -0.01265,
+        "high": -0.00946,
+        "n": 43457,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "groups": 1752,
+        "verdict": "model is better"
+      },
+      {
+        "metric": "brier",
+        "candidate": "model",
+        "reference": "baseline",
+        "value": -0.0027,
+        "low": -0.00314,
+        "high": -0.00226,
+        "n": 43457,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "groups": 1752,
+        "verdict": "model is better"
+      },
+      {
+        "metric": "log_loss",
+        "candidate": "model",
+        "reference": "understat",
+        "value": 0.02125,
+        "low": 0.01883,
+        "high": 0.02369,
+        "n": 43457,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "groups": 1752,
+        "verdict": "understat is better"
+      },
+      {
+        "metric": "brier",
+        "candidate": "model",
+        "reference": "understat",
+        "value": 0.00579,
+        "low": 0.00497,
+        "high": 0.00662,
+        "n": 43457,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "groups": 1752,
+        "verdict": "understat is better"
+      },
+      {
+        "metric": "log_loss",
+        "candidate": "model",
+        "reference": "understat_recalibrated",
+        "value": 0.02381,
+        "low": 0.02175,
+        "high": 0.02589,
+        "n": 43457,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "groups": 1752,
+        "verdict": "understat_recalibrated is better"
+      },
+      {
+        "metric": "brier",
+        "candidate": "model",
+        "reference": "understat_recalibrated",
+        "value": 0.00668,
+        "low": 0.00606,
+        "high": 0.0073,
+        "n": 43457,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "groups": 1752,
+        "verdict": "understat_recalibrated is better"
+      },
+      {
+        "metric": "log_loss",
+        "candidate": "understat_recalibrated",
+        "reference": "understat",
+        "value": -0.00257,
+        "low": -0.0032,
+        "high": -0.00193,
+        "n": 43457,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "groups": 1752,
+        "verdict": "understat_recalibrated is better"
+      },
+      {
+        "metric": "brier",
+        "candidate": "understat_recalibrated",
+        "reference": "understat",
+        "value": -0.00089,
+        "low": -0.00117,
+        "high": -0.00061,
+        "n": 43457,
+        "resamples": 10000,
+        "confidence": 0.95,
+        "seed": 20260920,
+        "groups": 1752,
+        "verdict": "understat_recalibrated is better"
+      }
+    ],
+    "by_situation": {
+      "DirectFreekick": {
+        "baseline": {
+          "log_loss": 0.21292,
+          "brier": 0.05147,
+          "auc": 0.59448,
+          "mean_predicted": 0.03746,
+          "observed_rate": 0.05431,
+          "n": 1160
+        },
+        "model": {
+          "log_loss": 0.21017,
+          "brier": 0.05132,
+          "auc": 0.5814,
+          "mean_predicted": 0.056,
+          "observed_rate": 0.05431,
+          "n": 1160
+        },
+        "understat": {
+          "log_loss": 0.2123,
+          "brier": 0.0521,
+          "auc": 0.59009,
+          "mean_predicted": 0.06329,
+          "observed_rate": 0.05431,
+          "n": 1160
+        },
+        "understat_recalibrated": {
+          "log_loss": 0.21094,
+          "brier": 0.05177,
+          "auc": 0.59106,
+          "mean_predicted": 0.05786,
+          "observed_rate": 0.05431,
+          "n": 1160
+        }
+      },
+      "FromCorner": {
+        "baseline": {
+          "log_loss": 0.28417,
+          "brier": 0.0779,
+          "auc": 0.74657,
+          "mean_predicted": 0.1518,
+          "observed_rate": 0.09086,
+          "n": 7176
+        },
+        "model": {
+          "log_loss": 0.26087,
+          "brier": 0.07206,
+          "auc": 0.76156,
+          "mean_predicted": 0.08816,
+          "observed_rate": 0.09086,
+          "n": 7176
+        },
+        "understat": {
+          "log_loss": 0.23428,
+          "brier": 0.06481,
+          "auc": 0.81224,
+          "mean_predicted": 0.10406,
+          "observed_rate": 0.09086,
+          "n": 7176
+        },
+        "understat_recalibrated": {
+          "log_loss": 0.23282,
+          "brier": 0.06444,
+          "auc": 0.81226,
+          "mean_predicted": 0.09109,
+          "observed_rate": 0.09086,
+          "n": 7176
+        }
+      },
+      "OpenPlay": {
+        "baseline": {
+          "log_loss": 0.29958,
+          "brier": 0.08517,
+          "auc": 0.73448,
+          "mean_predicted": 0.09066,
+          "observed_rate": 0.10404,
+          "n": 32392
+        },
+        "model": {
+          "log_loss": 0.29134,
+          "brier": 0.08307,
+          "auc": 0.75572,
+          "mean_predicted": 0.10653,
+          "observed_rate": 0.10404,
+          "n": 32392
+        },
+        "understat": {
+          "log_loss": 0.26911,
+          "brier": 0.07689,
+          "auc": 0.7987,
+          "mean_predicted": 0.11993,
+          "observed_rate": 0.10404,
+          "n": 32392
+        },
+        "understat_recalibrated": {
+          "log_loss": 0.26671,
+          "brier": 0.07607,
+          "auc": 0.79865,
+          "mean_predicted": 0.10398,
+          "observed_rate": 0.10404,
+          "n": 32392
+        }
+      },
+      "SetPiece": {
+        "baseline": {
+          "log_loss": 0.244,
+          "brier": 0.06446,
+          "auc": 0.75454,
+          "mean_predicted": 0.12142,
+          "observed_rate": 0.07439,
+          "n": 2729
+        },
+        "model": {
+          "log_loss": 0.22796,
+          "brier": 0.06181,
+          "auc": 0.76957,
+          "mean_predicted": 0.08329,
+          "observed_rate": 0.07439,
+          "n": 2729
+        },
+        "understat": {
+          "log_loss": 0.22243,
+          "brier": 0.06173,
+          "auc": 0.80004,
+          "mean_predicted": 0.1095,
+          "observed_rate": 0.07439,
+          "n": 2729
+        },
+        "understat_recalibrated": {
+          "log_loss": 0.21453,
+          "brier": 0.05842,
+          "auc": 0.80006,
+          "mean_predicted": 0.09533,
+          "observed_rate": 0.07439,
+          "n": 2729
+        }
+      }
+    },
+    "calibration": {
+      "baseline": [
+        {
+          "bin_low": 0.0,
+          "bin_high": 0.02,
+          "n": 251,
+          "mean_predicted": 0.0119,
+          "observed_rate": 0.04781
+        },
+        {
+          "bin_low": 0.02,
+          "bin_high": 0.04,
+          "n": 6647,
+          "mean_predicted": 0.03356,
+          "observed_rate": 0.02573
+        },
+        {
+          "bin_low": 0.04,
+          "bin_high": 0.06,
+          "n": 9655,
+          "mean_predicted": 0.04928,
+          "observed_rate": 0.04309
+        },
+        {
+          "bin_low": 0.06,
+          "bin_high": 0.08,
+          "n": 7660,
+          "mean_predicted": 0.06887,
+          "observed_rate": 0.07298
+        },
+        {
+          "bin_low": 0.08,
+          "bin_high": 0.1,
+          "n": 5030,
+          "mean_predicted": 0.0891,
+          "observed_rate": 0.11571
+        },
+        {
+          "bin_low": 0.1,
+          "bin_high": 0.15,
+          "n": 6493,
+          "mean_predicted": 0.12289,
+          "observed_rate": 0.11643
+        },
+        {
+          "bin_low": 0.15,
+          "bin_high": 0.2,
+          "n": 3774,
+          "mean_predicted": 0.17138,
+          "observed_rate": 0.15395
+        },
+        {
+          "bin_low": 0.2,
+          "bin_high": 0.3,
+          "n": 2180,
+          "mean_predicted": 0.23585,
+          "observed_rate": 0.22615
+        },
+        {
+          "bin_low": 0.3,
+          "bin_high": 0.4,
+          "n": 928,
+          "mean_predicted": 0.34791,
+          "observed_rate": 0.3222
+        },
+        {
+          "bin_low": 0.4,
+          "bin_high": 0.6,
+          "n": 651,
+          "mean_predicted": 0.4757,
+          "observed_rate": 0.44854
+        },
+        {
+          "bin_low": 0.6,
+          "bin_high": 0.8,
+          "n": 158,
+          "mean_predicted": 0.67502,
+          "observed_rate": 0.64557
+        },
+        {
+          "bin_low": 0.8,
+          "bin_high": 1.0,
+          "n": 30,
+          "mean_predicted": 0.83943,
+          "observed_rate": 0.83333
+        }
+      ],
+      "model": [
+        {
+          "bin_low": 0.0,
+          "bin_high": 0.02,
+          "n": 1729,
+          "mean_predicted": 0.01563,
+          "observed_rate": 0.02429
+        },
+        {
+          "bin_low": 0.02,
+          "bin_high": 0.04,
+          "n": 9840,
+          "mean_predicted": 0.03044,
+          "observed_rate": 0.02967
+        },
+        {
+          "bin_low": 0.04,
+          "bin_high": 0.06,
+          "n": 7862,
+          "mean_predicted": 0.04929,
+          "observed_rate": 0.04503
+        },
+        {
+          "bin_low": 0.06,
+          "bin_high": 0.08,
+          "n": 5826,
+          "mean_predicted": 0.06958,
+          "observed_rate": 0.0587
+        },
+        {
+          "bin_low": 0.08,
+          "bin_high": 0.1,
+          "n": 4016,
+          "mean_predicted": 0.08912,
+          "observed_rate": 0.08466
+        },
+        {
+          "bin_low": 0.1,
+          "bin_high": 0.15,
+          "n": 6433,
+          "mean_predicted": 0.12208,
+          "observed_rate": 0.12856
+        },
+        {
+          "bin_low": 0.15,
+          "bin_high": 0.2,
+          "n": 3067,
+          "mean_predicted": 0.17183,
+          "observed_rate": 0.17965
+        },
+        {
+          "bin_low": 0.2,
+          "bin_high": 0.3,
+          "n": 2652,
+          "mean_predicted": 0.24089,
+          "observed_rate": 0.25151
+        },
+        {
+          "bin_low": 0.3,
+          "bin_high": 0.4,
+          "n": 899,
+          "mean_predicted": 0.34266,
+          "observed_rate": 0.34372
+        },
+        {
+          "bin_low": 0.4,
+          "bin_high": 0.6,
+          "n": 760,
+          "mean_predicted": 0.48792,
+          "observed_rate": 0.42237
+        },
+        {
+          "bin_low": 0.6,
+          "bin_high": 0.8,
+          "n": 293,
+          "mean_predicted": 0.67396,
+          "observed_rate": 0.61775
+        },
+        {
+          "bin_low": 0.8,
+          "bin_high": 1.0,
+          "n": 80,
+          "mean_predicted": 0.88462,
+          "observed_rate": 0.775
+        }
+      ],
+      "understat": [
+        {
+          "bin_low": 0.0,
+          "bin_high": 0.02,
+          "n": 6186,
+          "mean_predicted": 0.01488,
+          "observed_rate": 0.01972
+        },
+        {
+          "bin_low": 0.02,
+          "bin_high": 0.04,
+          "n": 9372,
+          "mean_predicted": 0.02908,
+          "observed_rate": 0.035
+        },
+        {
+          "bin_low": 0.04,
+          "bin_high": 0.06,
+          "n": 7430,
+          "mean_predicted": 0.04981,
+          "observed_rate": 0.04428
+        },
+        {
+          "bin_low": 0.06,
+          "bin_high": 0.08,
+          "n": 5518,
+          "mean_predicted": 0.06923,
+          "observed_rate": 0.05817
+        },
+        {
+          "bin_low": 0.08,
+          "bin_high": 0.1,
+          "n": 3707,
+          "mean_predicted": 0.08934,
+          "observed_rate": 0.06339
+        },
+        {
+          "bin_low": 0.1,
+          "bin_high": 0.15,
+          "n": 3976,
+          "mean_predicted": 0.11908,
+          "observed_rate": 0.08023
+        },
+        {
+          "bin_low": 0.15,
+          "bin_high": 0.2,
+          "n": 369,
+          "mean_predicted": 0.16948,
+          "observed_rate": 0.12466
+        },
+        {
+          "bin_low": 0.2,
+          "bin_high": 0.3,
+          "n": 1136,
+          "mean_predicted": 0.2639,
+          "observed_rate": 0.23327
+        },
+        {
+          "bin_low": 0.3,
+          "bin_high": 0.4,
+          "n": 2098,
+          "mean_predicted": 0.34844,
+          "observed_rate": 0.32507
+        },
+        {
+          "bin_low": 0.4,
+          "bin_high": 0.6,
+          "n": 2762,
+          "mean_predicted": 0.48902,
+          "observed_rate": 0.39862
+        },
+        {
+          "bin_low": 0.6,
+          "bin_high": 0.8,
+          "n": 730,
+          "mean_predicted": 0.66113,
+          "observed_rate": 0.55753
+        },
+        {
+          "bin_low": 0.8,
+          "bin_high": 1.0,
+          "n": 173,
+          "mean_predicted": 0.90089,
+          "observed_rate": 0.76879
+        }
+      ],
+      "understat_recalibrated": [
+        {
+          "bin_low": 0.0,
+          "bin_high": 0.02,
+          "n": 5873,
+          "mean_predicted": 0.01542,
+          "observed_rate": 0.01924
+        },
+        {
+          "bin_low": 0.02,
+          "bin_high": 0.04,
+          "n": 10414,
+          "mean_predicted": 0.02918,
+          "observed_rate": 0.03563
+        },
+        {
+          "bin_low": 0.04,
+          "bin_high": 0.06,
+          "n": 8484,
+          "mean_predicted": 0.04972,
+          "observed_rate": 0.04856
+        },
+        {
+          "bin_low": 0.06,
+          "bin_high": 0.08,
+          "n": 5705,
+          "mean_predicted": 0.06922,
+          "observed_rate": 0.05539
+        },
+        {
+          "bin_low": 0.08,
+          "bin_high": 0.1,
+          "n": 3480,
+          "mean_predicted": 0.08893,
+          "observed_rate": 0.07155
+        },
+        {
+          "bin_low": 0.1,
+          "bin_high": 0.15,
+          "n": 2481,
+          "mean_predicted": 0.11378,
+          "observed_rate": 0.08867
+        },
+        {
+          "bin_low": 0.15,
+          "bin_high": 0.2,
+          "n": 389,
+          "mean_predicted": 0.17716,
+          "observed_rate": 0.18252
+        },
+        {
+          "bin_low": 0.2,
+          "bin_high": 0.3,
+          "n": 2286,
+          "mean_predicted": 0.25628,
+          "observed_rate": 0.27997
+        },
+        {
+          "bin_low": 0.3,
+          "bin_high": 0.4,
+          "n": 2064,
+          "mean_predicted": 0.34658,
+          "observed_rate": 0.37645
+        },
+        {
+          "bin_low": 0.4,
+          "bin_high": 0.6,
+          "n": 1953,
+          "mean_predicted": 0.47583,
+          "observed_rate": 0.4552
+        },
+        {
+          "bin_low": 0.6,
+          "bin_high": 0.8,
+          "n": 214,
+          "mean_predicted": 0.67769,
+          "observed_rate": 0.65421
+        },
+        {
+          "bin_low": 0.8,
+          "bin_high": 1.0,
+          "n": 114,
+          "mean_predicted": 0.89064,
+          "observed_rate": 0.78947
+        }
+      ]
+    },
+    "penalties": {
+      "before_holdout": {
+        "penalties": 513,
+        "conversion": 0.78947
+      },
+      "holdout": {
+        "penalties": 551,
+        "conversion": 0.77314
+      },
+      "understat_xg": 0.75583,
+      "note": "Not modelled: every penalty is taken from one spot, and Understat gives each the same xG. The constant a penalty would get is the conversion rate before the hold-out."
+    },
+    "missing_from_gold": "Gold carries no last_action — the action before the shot (cross, through ball, rebound), which Understat parses and its model uses. Part 1 has it in Silver as last_action; it is not in Gold's fact_shots. Every gap to Understat below includes what that column would explain (CLAUDE.md §5, L10)."
+  },
+  "holdout_evaluations": {
+    "baseline": [
+      {
+        "fingerprint": "d0d6498ecdf53afa",
+        "git_commit": "e1399d694a40432fe4c887d960e5171c1c314437",
+        "date": "2026-10-01"
+      }
+    ],
+    "model": [
+      {
+        "fingerprint": "c3f0521daeabf623",
+        "git_commit": "e1399d694a40432fe4c887d960e5171c1c314437",
+        "date": "2026-10-01"
+      }
+    ],
+    "understat": [
+      {
+        "fingerprint": "e7da24e69f4c7172",
+        "git_commit": "e1399d694a40432fe4c887d960e5171c1c314437",
+        "date": "2026-10-01"
+      }
+    ],
+    "understat_recalibrated": [
+      {
+        "fingerprint": "e0a94529cfc27eb4",
+        "git_commit": "e1399d694a40432fe4c887d960e5171c1c314437",
+        "date": "2026-10-01"
+      }
+    ]
+  }
+}

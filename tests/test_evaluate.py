@@ -130,3 +130,58 @@ def test_the_bootstrap_is_seeded():
     first = ev.paired_difference(a, b, resamples=500)
     assert first == ev.paired_difference(a, b, resamples=500)
     assert first != ev.paired_difference(a, b, resamples=500, seed=1)
+
+
+# --- binary: shots -------------------------------------------------------------------
+
+
+def test_binary_log_loss_and_brier_by_hand():
+    p, y = [0.2, 0.9], [0, 1]
+    assert ev.binary_log_loss(p, y) == pytest.approx([-np.log(0.8), -np.log(0.9)])
+    assert ev.binary_brier(p, y) == pytest.approx([0.04, 0.01])
+
+
+def test_binary_scores_report_the_rates_and_auc():
+    s = ev.binary_scores([0.1, 0.2, 0.7, 0.9], [0, 0, 1, 1])
+    assert s["auc"] == pytest.approx(1.0)
+    assert s["mean_predicted"] == pytest.approx(0.475)
+    assert s["observed_rate"] == pytest.approx(0.5)
+    assert s["n"] == 4
+
+
+def test_binary_inputs_are_checked():
+    with pytest.raises(ValueError, match=r"\[0, 1\]"):
+        ev.binary_brier([1.2], [1])
+    with pytest.raises(ValueError, match="0 or 1"):
+        ev.binary_brier([0.5], [2])
+
+
+def test_binary_calibration_uses_xg_shaped_bins():
+    p = np.array([0.01, 0.01, 0.03, 0.5])
+    y = np.array([0, 1, 0, 1])
+    rows = {r["bin_low"]: r for r in ev.binary_calibration(p, y)}
+    assert rows[0.0]["n"] == 2 and rows[0.0]["observed_rate"] == 0.5
+    assert rows[0.02]["n"] == 1
+    assert rows[0.4]["mean_predicted"] == pytest.approx(0.5)
+
+
+def test_grouped_bootstrap_without_grouping_structure_matches_the_plain_one_in_value():
+    rng = np.random.default_rng(6)
+    a, b = rng.random(300), rng.random(300)
+    plain = ev.paired_difference(a, b, resamples=500)
+    grouped = ev.paired_difference(a, b, resamples=500, groups=np.arange(300))
+    assert grouped.value == pytest.approx(plain.value)
+    assert grouped.groups == 300
+
+
+def test_grouped_bootstrap_is_wider_when_rows_move_together_within_a_group():
+    # 100 matches of 10 shots; the difference is shared within a match, so the 1,000
+    # rows carry only 100 independent pieces of information.
+    rng = np.random.default_rng(7)
+    per_match = rng.normal(0, 1, 100)
+    diff = np.repeat(per_match, 10) + rng.normal(0, 0.05, 1000)
+    groups = np.repeat(np.arange(100), 10)
+    rowwise = ev.paired_difference(diff, np.zeros(1000), resamples=2000)
+    clustered = ev.paired_difference(diff, np.zeros(1000), resamples=2000, groups=groups)
+    assert (clustered.high - clustered.low) > 2.5 * (rowwise.high - rowwise.low)
+    assert clustered.groups == 100

@@ -34,7 +34,7 @@ portfolio/football-data/
 |-------|-------|-------|--------|
 | Part 1 — Data Engineering & Architecture | Ingestion, Airflow, Bronze/Silver/Gold, data quality | `../football-data-engineering` | Complete |
 | Part 2 — Analytics & BI | Metrics layer, analyses, dashboard | `../football-data-analytics` | Complete |
-| **Part 3 — Machine Learning** | Match outcome and xG models, evaluation | **this repository** | **Phases 0–3 of 6 — features, baselines, models #1 and #2** |
+| **Part 3 — Machine Learning** | Match outcome and xG models, evaluation | **this repository** | **Phases 0–4 of 6 — models #1–#3 built** |
 
 **The deliverable is a model a reviewer can trust the score of** — not the
 highest score. The audience is someone hiring for data science or ML: they will
@@ -52,7 +52,7 @@ feature pipelines, model selection, xG models built from `fact_shots` — is her
 
 ## 2. Status, and what this repository inherits
 
-**Models #1 and #2 and their baselines are built (phases 0–3, §12); #3 and #4 are not.** The data is: Part 1's Gold holds three big-5 seasons
+**Models #1–#3 and their baselines are built (phases 0–4, §12); #4 is not.** The data is: Part 1's Gold holds three big-5 seasons
 (2024/25 and 2025/26 complete, 2026/27 in progress — about 3,700 matches and
 94,000 shots as of 2026-09), and Part 2's metrics layer builds on it with 131
 passing dbt tests. Treat those counts as a reading; the authority is the
@@ -455,7 +455,7 @@ the next.
 | 1 ✅ | `feat_match_outcome`, walk-forward splits, `assert_no_feature_reads_the_future` | The test passes, and fails when a window's shift is removed on purpose |
 | 2 ✅ | Baselines + model #1, `evaluate.py`, first report | RPS for base rates, Elo and the model, with paired intervals |
 | 3 ✅ | Model #2 (Dixon-Coles on goals and on xG) | Compared with #1 on the same splits |
-| 4 | Model #3 (xG) against Understat's | Calibration plot and log loss beside Understat's, with the L10 gap stated |
+| 4 ✅ | Model #3 (xG) against Understat's | Calibration plot and log loss beside Understat's, with the L10 gap stated |
 | 5 | Prospective scoring on the next snapshot, predictions page in Part 2's dashboard | A frozen model scored on matches played after it was frozen |
 | 6 | README as the front page — and the portfolio's closing chapter | A reviewer understands what the models can and cannot do without running anything |
 
@@ -605,6 +605,62 @@ How it was built, and what bit:
   rates, Elo and model #1 with its original date, after their scores, calibration, draws
   and all six earlier comparisons reproduced exactly.
 
+**What phase 4 established.** With what Gold carries, an xG model gets a clear step past
+distance and angle and stays well short of Understat. `feat_shots` holds the 92,572
+non-penalty, non-own-goal shots; model #3 (`models/shot_xg.py`) was chosen on validation
+log loss — a logistic regression with splines on distance and angle, situation, body
+part, assist, home and minute — and scored once on the 2025/26 hold-out (43,457 shots in
+1,752 matches), with intervals from a bootstrap over **matches**:
+
+| | log loss | Brier | AUC | mean predicted (actual 0.0987) |
+|---|---|---|---|---|
+| distance + angle (baseline) | 0.2912 | 0.0818 | 0.719 | 0.1013 |
+| **model #3**, `logistic(C=0.1)` | **0.2802** | **0.0791** | **0.757** | 0.1007 |
+| Understat, as published | 0.2589 | 0.0733 | 0.799 | 0.1151 |
+| Understat, recalibrated per fold | 0.2563 | 0.0724 | 0.799 | 0.1001 |
+
+- **Beats the baseline:** −0.0111 log loss [−0.0127, −0.0095].
+- **Falls short of Understat:** +0.0213 [+0.0188, +0.0237] against it as published, +0.0238
+  [+0.0218, +0.0259] against it recalibrated. The gap is discrimination (AUC 0.757 against
+  0.799), not calibration.
+- **Understat's published xG is miscalibrated on these seasons** — 0.115 per shot against
+  0.099 scored, and 0.489 predicted where 0.399 went in for its 0.4–0.6 band. A logistic
+  recalibration fitted on each training fold improves it significantly (−0.0026
+  [−0.0032, −0.0019]). That is why the recalibrated benchmark is reported: against raw
+  Understat, a model calibrated on this data gets some of its score for free.
+- **Where the gap sits is consistent with L10.** AUC model / Understat: direct free kicks
+  0.581 / 0.590 (log loss even slightly better than recalibrated Understat's), set pieces
+  0.770 / 0.800, open play 0.756 / 0.799, corners 0.762 / 0.812. A direct free kick has
+  no previous action; open play and corners are where a cross, a through ball or a rebound
+  changes the chance. Consistent with, not proof of: there is no interval per situation and
+  1,160 free kicks. §13 now recommends raising `last_action` in Part 1.
+- **Penalties, as a constant:** 78.9% converted before the hold-out (513), 77.3% in it
+  (551), against Understat's 0.756 for every one.
+- **Histogram boosting lost to the logistic regression again**, worse with each step of
+  capacity, on ~13,000–30,000 training shots.
+
+How it was built, and what bit:
+
+- **The leakage risk for shots is columns, not dates.** A shot's inputs are its own
+  attributes at the moment it is taken, so `max_input_date` is null and the date test
+  passes trivially. `assert_shot_features_are_on_the_allowlist` fails on any column not
+  explicitly approved, and `models/shot_xg.py` lists its inputs explicitly — two guards,
+  and a test that the Python list sits inside the dbt one.
+- **Two column tests were checking nothing.** The allowlist test, and phase 1's
+  `assert_features_come_in_home_away_pairs`, read `information_schema` by table name, so
+  dbt saw no dependency and ran them *before* the model was built — on a fresh database
+  they found no table and passed; on a rebuild they checked the previous build. The
+  planted-leak test for the allowlist found it. Both now read through `ref()` and fail if
+  they find no columns at all. **Any test that inspects a model's columns must `ref()` it.**
+- **Planted leaks, now eight:** L1, L2, a feature model without the leakage test, a
+  one-sided feature, an outcome column in `feat_shots`, penalties let in, own goals let in
+  — each asserted to fail on the specific test meant to catch it.
+- **Splits and intervals by match (L5).** `splits.aligned` gives shots the match models'
+  months; a match's shots share a date, so no match straddles train and test.
+  `paired_difference(groups=…)` is a cluster bootstrap — on 10 correlated rows per group
+  its interval comes out more than 2.5× wider than resampling rows, which is the
+  overconfidence it avoids.
+
 ---
 
 ## 13. Open decisions
@@ -615,7 +671,10 @@ How it was built, and what bit:
 - **Where predictions are shown.** A fifth page in Part 2's dashboard (preferred:
   one site) or a page in this repository. Decide in phase 5.
 - **`last_action` in Gold** (L10). Raise it as a Part 1 task if model #3 shows the
-  gap to Understat matters; it would also change Gold's contract in Part 2.
+  gap to Understat matters; it would also change Gold's contract in Part 2. **Phase 4
+  says it does** (§12): the gap is 0.021 log loss and 0.04 AUC, largest in open play and
+  from corners, and gone on direct free kicks — the one situation with no previous action
+  to know about. Recommended; not yet raised.
 - **Retraining cadence** for prospective evaluation — per snapshot, or frozen for
   a whole season. Frozen is the honest default.
 

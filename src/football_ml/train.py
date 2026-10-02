@@ -409,13 +409,29 @@ def summary(report: dict) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("model", choices=["match_outcome"])
+    parser.add_argument("model", choices=["match_outcome", "shot_xg"])
     parser.add_argument(
         "--validation-only",
         action="store_true",
         help="score the candidates on the validation folds and stop: the hold-out is not touched",
     )
     args = parser.parse_args()
+    if args.model == "shot_xg":
+        from football_ml import train_xg  # imports this module; import lazily
+
+        if args.validation_only:
+            result = train_xg.train_shot_xg(write=False, validation_only=True)
+            for rows in result["validation"].values():
+                for r in rows:
+                    print(
+                        f"{r['name']:60} log loss {r['log_loss']:.5f}  AUC {r['auc']:.4f}  "
+                        f"n {r['n']}"
+                    )
+            for method, name in result["selected"].items():
+                print(f"selected {method}: {name}")
+            return
+        print(train_xg.summary(train_xg.train_shot_xg()))
+        return
     if args.validation_only:
         result = train_match_outcome(write=False, validation_only=True)
         for rows in result["validation"].values():

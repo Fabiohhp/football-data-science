@@ -28,3 +28,9 @@ sources:
           One row per team × season × competition — a summary of the **whole** season.
           Read only through src_team_season_prior, as the previous season's summary
           (CLAUDE.md §5, L2); never joined on the current season.
+      - name: mart_shots
+        description: >
+          One row per shot, deduplicated by Part 2 (its trap 14), with season and
+          competition attached. Includes penalties and own goals; feat_shots removes
+          them. `xg` is Understat's model — the benchmark for model #3, never a feature
+          of it (CLAUDE.md §5, L9).

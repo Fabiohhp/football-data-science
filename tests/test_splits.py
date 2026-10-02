@@ -121,3 +121,21 @@ def test_training_expands_fold_by_fold(frame):
 def test_no_complete_season_is_refused(frame):
     with pytest.raises(ValueError, match="No complete season"):
         splits.plan(frame[frame["season"] == "2026/27"])
+
+
+def test_aligned_folds_keep_the_months_and_never_split_a_match(frame):
+    plan = splits.plan(frame)
+    # Ten "shots" per match, each carrying its match's date and id.
+    shots = frame.loc[frame.index.repeat(10), ["as_of_date"]].reset_index(names="match")
+    shot_plan = splits.aligned(plan, shots["as_of_date"])
+
+    assert [f.label for f in shot_plan.validation] == [f.label for f in plan.validation]
+    assert [f.label for f in shot_plan.holdout] == [f.label for f in plan.holdout]
+    for fold in shot_plan.validation + shot_plan.holdout:
+        train_matches = set(shots.loc[fold.train, "match"])
+        test_matches = set(shots.loc[fold.test, "match"])
+        assert not train_matches & test_matches
+        assert _dates(shots, fold.train).max() < fold.test_start
+    live = pd.to_datetime(shots["as_of_date"]) >= pd.Timestamp(plan.holdout[-1].test_end)
+    every = np.concatenate([f.test for f in shot_plan.validation + shot_plan.holdout])
+    assert not np.isin(np.flatnonzero(live), every).any()

@@ -32,6 +32,13 @@ vars:
   # (L7). Scores are reported separately for those matches. One full form window.
   min_history: 5
 
+  # Pitch geometry for feat_shots. Understat's coordinates are normalized to [0, 1]
+  # (Part 2 trap 10), so distances need a pitch size; 105 × 68 m is the UEFA standard
+  # most big-5 grounds use. The goal mouth is fixed by the laws of the game.
+  pitch_length_m: 105
+  pitch_width_m: 68
+  goal_width_m: 7.32
+
 models:
   football_ml:
     # Tables, not views, everywhere — Part 2's reason (its CLAUDE.md §6). A view

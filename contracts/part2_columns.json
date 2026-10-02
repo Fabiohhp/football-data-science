@@ -6,7 +6,7 @@
       "columns": []
     },
     "int_team_matches": {
-      "_why": "One row per team per counting match \u2014 Part 2's foundation for every team metric, with the status and split-fixture filters already applied (Part 2 CLAUDE.md §6). Read by src_team_matches.",
+      "_why": "One row per team per counting match — Part 2's foundation for every team metric, with the status and split-fixture filters already applied (Part 2 CLAUDE.md §6). Read by src_team_matches.",
       "columns": [
         {"name": "match_key", "type": "BIGINT"},
         {"name": "match_date", "type": "DATE"},
@@ -38,6 +38,29 @@
         {"name": "npxg_against", "type": "DOUBLE"},
         {"name": "is_season_complete", "type": "BOOLEAN"},
         {"name": "last_match_date", "type": "DATE"}
+      ]
+    },
+    "mart_shots": {
+      "_why": "One row per shot, deduplicated by Part 2 (its trap 14), with season attached. Read by src_shots for model #3. Understat's xg is read as the benchmark, never as a feature (CLAUDE.md §5, L9).",
+      "columns": [
+        {"name": "shot_key", "type": "BIGINT"},
+        {"name": "understat_match_id", "type": "INTEGER"},
+        {"name": "match_key", "type": "BIGINT"},
+        {"name": "match_date", "type": "DATE"},
+        {"name": "season", "type": "VARCHAR"},
+        {"name": "competition_code", "type": "VARCHAR"},
+        {"name": "team_key", "type": "BIGINT"},
+        {"name": "is_home", "type": "BOOLEAN"},
+        {"name": "assist_player_key", "type": "BIGINT"},
+        {"name": "minute", "type": "SMALLINT"},
+        {"name": "x", "type": "DOUBLE"},
+        {"name": "y", "type": "DOUBLE"},
+        {"name": "xg", "type": "DOUBLE"},
+        {"name": "result", "type": "VARCHAR"},
+        {"name": "situation", "type": "VARCHAR"},
+        {"name": "shot_type", "type": "VARCHAR"},
+        {"name": "is_goal", "type": "BOOLEAN"},
+        {"name": "is_penalty", "type": "BOOLEAN"}
       ]
     }
   }
