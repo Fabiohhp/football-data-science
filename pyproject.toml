@@ -23,6 +23,12 @@ dependencies = [
     "statsmodels>=0.14",
     "scipy>=1.14",
     "joblib>=1.4",
+    # Phase 6: the notebooks and the README's charts (CLAUDE.md §3) — static images,
+    # because GitHub's notebook view is where a reviewer reads them.
+    "matplotlib>=3.9",
+    "mplsoccer>=1.4",
+    "jupyterlab>=4.2",
+    "ipykernel>=6.29",
 ]
 
 [project.optional-dependencies]
@@ -30,6 +36,9 @@ dev = [
     "ruff>=0.6",
     "black>=24.8",
     "pytest>=8.3",
+    # CI re-executes every notebook, as Part 2's does.
+    "nbclient>=0.10",
+    "nbformat>=5.10",
 ]
 
 [build-system]

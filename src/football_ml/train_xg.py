@@ -27,6 +27,7 @@ from datetime import UTC, date, datetime
 import joblib
 import numpy as np
 import pandas as pd
+import yaml
 
 from football_ml import data, splits
 from football_ml import evaluate as ev
@@ -60,6 +61,59 @@ L10 = (
     "last_action; it is not in Gold's fact_shots. Every gap to Understat below includes "
     "what that column would explain (CLAUDE.md §5, L10)."
 )
+
+
+# The two shots the report maps over the pitch: the commonest kind of attempt, and the
+# set-piece header, which a location-only model cannot tell from a shot with the feet.
+SURFACE_PROFILES = {
+    "Right foot, open play, assisted": {"situation": "OpenPlay", "shot_type": "RightFoot"},
+    "Header from a corner, assisted": {"situation": "FromCorner", "shot_type": "Head"},
+}
+
+
+def _pitch() -> dict[str, float]:
+    """The pitch geometry feat_shots used, read from the dbt vars — never retyped."""
+    vars_ = yaml.safe_load((REPO_ROOT / "dbt" / "dbt_project.yml").read_text())["vars"]
+    return {k: float(vars_[k]) for k in ("pitch_length_m", "pitch_width_m", "goal_width_m")}
+
+
+def surface(model: ShotModel, *, nx: int = 36, ny: int = 51) -> dict:
+    """The fitted model's xG over a grid of the attacking third, for two shot profiles.
+
+    Not a refit and not an evaluation: the final model's predictions at chosen points,
+    so the report can show what it learned. The geometry is computed exactly as
+    feat_shots computes it, from the same dbt vars.
+    """
+    g = _pitch()
+    xs = np.linspace(0.64, 0.995, nx)  # Understat x: towards the goal being attacked
+    ys = np.linspace(0.0, 1.0, ny)
+    gx, gy = np.meshgrid(xs, ys, indexing="ij")
+    goal_line = (1 - gx) * g["pitch_length_m"]
+    lateral = (gy - 0.5) * g["pitch_width_m"]
+    half = g["goal_width_m"] / 2
+    grid = pd.DataFrame(
+        {
+            "distance_m": np.sqrt(goal_line**2 + lateral**2).ravel(),
+            "angle_rad": np.arctan2(
+                g["goal_width_m"] * goal_line, goal_line**2 + lateral**2 - half**2
+            ).ravel(),
+            "goal_line_m": goal_line.ravel(),
+            "lateral_m": lateral.ravel(),
+            "minute": 45.0,
+            "is_assisted": True,
+            "is_home": True,
+        }
+    )
+    profiles = {}
+    for label, fixed in SURFACE_PROFILES.items():
+        p = model.predict_proba(grid.assign(**fixed)).reshape(nx, ny)
+        profiles[label] = [[round(float(v), 4) for v in row] for row in p]
+    return {
+        "x": [round(float(v), 4) for v in xs],
+        "y": [round(float(v), 4) for v in ys],
+        "fixed": {"minute": 45, "is_assisted": True, "is_home": True},
+        "profiles": profiles,
+    }
 
 
 def walk(folds: list[splits.Fold], forecast: Forecast) -> tuple[np.ndarray, np.ndarray]:
@@ -262,6 +316,7 @@ def train_shot_xg(*, write: bool = True, validation_only: bool = False) -> dict:
         model_dir.mkdir(parents=True, exist_ok=True)
         joblib.dump({"model": final}, model_dir / "model.joblib")
         (model_dir / "model_card.json").write_text(_to_json(card))
+        report["surface"] = surface(final)
         report_path.parent.mkdir(exist_ok=True)
         report_path.write_text(_to_json(report))
 

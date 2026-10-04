@@ -1,6 +1,6 @@
 {
   "model": "match_outcome",
-  "version": "20260930-a480372",
+  "version": "20261004-9e55b24",
   "question": "Can pre-match form — goals, xG, xPTS — predict H/D/A better than league base rates and Elo? (CLAUDE.md §8 #1)",
   "estimator": {
     "family": "logistic",
@@ -100,21 +100,21 @@
   "selected_on": "validation folds 2024-11 to 2025-05, lowest ranked probability score",
   "holdout_scores": {
     "base_rates": {
-      "rps": 0.22927,
-      "log_loss": 1.07309,
-      "brier": 0.64888,
+      "rps": 0.229266,
+      "log_loss": 1.073088,
+      "brier": 0.648883,
       "n": 1752
     },
     "elo": {
-      "rps": 0.20761,
-      "log_loss": 1.01031,
-      "brier": 0.60464,
+      "rps": 0.207607,
+      "log_loss": 1.010311,
+      "brier": 0.604643,
       "n": 1752
     },
     "model": {
-      "rps": 0.2091,
-      "log_loss": 1.0225,
-      "brier": 0.61049,
+      "rps": 0.209099,
+      "log_loss": 1.022498,
+      "brier": 0.610491,
       "n": 1752
     }
   },
@@ -127,10 +127,10 @@
     }
   ],
   "git": {
-    "commit": "a480372f180ecb7dad88f5a35b13836cd7268568",
+    "commit": "9e55b24a618455630b7f21aa7e58114055e245d6",
     "dirty": true
   },
-  "created_at": "2026-09-30T23:03:13+00:00",
+  "created_at": "2026-10-04T15:14:44+00:00",
   "limitations": [
     "Compared with league base rates and Elo only. Gold holds no betting odds, so there is no market benchmark and no claim to beat one.",
     "What a model uses is not what wins matches: no causal reading of its parameters, coefficients or importances.",

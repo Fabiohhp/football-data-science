@@ -1,72 +1,211 @@
-# Football data — Part 3: Machine Learning
+# Football ML — what a model can predict, and what it can't
 
-Models that predict what has not happened yet — match outcomes, and the chance a
-shot becomes a goal — evaluated against baselines with intervals, on splits that
-could not have seen the future.
+**Match-result and expected-goals models for the big-5 European leagues, scored on a
+season they never saw, against honest baselines, with every comparison carrying an
+interval — and the tests that make the scores believable.**
 
-The last part of a three-repository portfolio:
+This is Part 3, the closing chapter, of a three-part portfolio. Part 1 built the
+pipeline, Part 2 turned it into answered questions, and this part asks the predictive
+version of those questions.
 
-| Part | Repository | |
-|------|------------|---|
-| 1 — Data Engineering | [`football-data-engineering`](../football-data-engineering) | the pipeline; owns the Gold layer |
-| 2 — Analytics & BI | [`football-data-analytics`](../football-data-analytics) | metrics layer, analyses, dashboard |
-| **3 — Machine Learning** | **this repository** | models and their evaluation |
+| Part | Scope | Repository |
+|------|-------|------------|
+| 1 — Data Engineering | Ingestion, Airflow, Bronze/Silver/Gold, data quality | [`football-data-engineering`](../football-data-engineering) |
+| 2 — Analytics & BI | Metrics layer, analyses, dashboard | [`football-data-analytics`](../football-data-analytics) |
+| **3 — Machine Learning** | **Match outcome and xG models, evaluation** | **this repository** |
 
-> **Status: phases 0–4 of 6.** Features, walk-forward splits, baselines, two match
-> models and a shot xG model are built, all on the existing snapshot. The design
-> brief, including the leakage traps every model here must avoid, is
-> [`CLAUDE.md`](CLAUDE.md).
+**You do not need to run anything to read this.** Every number below comes from a
+committed report in [`reports/`](reports), every chart from a committed notebook, and
+CI runs the whole pipeline on synthetic data.
 
-## Results so far: nothing beats Elo measurably, but goals models are better calibrated
+---
 
-Scored once on the **2025/26 season (1,752 matches)**, walked forward month by month.
-Each model's settings were chosen on 2024/25 only. Lower is better:
+## The findings
 
-| | ranked probability score | log loss |
+### 1. Nothing forecasts match results measurably better than an Elo rating — but the goals models are calibrated
+
+Five methods gave a probability to home win, draw and away win before every match of
+2025/26:
+
+- league base rates;
+- an Elo rating;
+- a form model (last five matches: points, goals, non-penalty xG, xPTS);
+- Dixon-Coles predicting each side's goals, fitted to goals;
+- the same model, fitted to xG.
+
+Settings were chosen on 2024/25, then 2025/26 was scored once.
+
+> **Dixon-Coles on xG scores best, and still cannot be told apart from Elo.** Ranked
+> probability score (lower is better):
+>
+> | | RPS |
+> |---|---|
+> | Dixon-Coles, xG | **0.2045** |
+> | Dixon-Coles, goals | 0.2054 |
+> | Elo rating | 0.2076 |
+> | Form model | 0.2091 |
+> | League base rates | 0.2293 |
+>
+> Against Elo, the difference is −0.0031, with a 95% interval from −0.0070 to
+> +0.0008, which crosses zero. Elo and the form model beat the league base rates with
+> intervals well clear of zero, and the Dixon-Coles models score better still.
+
+![Paired differences with 95% intervals: every comparison with Elo crosses zero; Elo against base rates does not](docs/images/01-comparisons.png)
+
+The models differ in calibration rather than in score. Elo is too sure of favourites:
+an away win it gave 65% happened 52% of the time. Dixon-Coles stays close to the diagonal.
+
+![Predicted against observed rate for home wins, draws and away wins: Dixon-Coles stays close to the diagonal, Elo falls below it at the top](docs/images/01-calibration.png)
+
+Part 2 found that xG difference carries information that points do not. As a
+forecaster, that shows up here as the best point estimate, by less than one season can
+measure. Modelling **goals** beats modelling the **result** on log loss (−0.0185,
+interval −0.0331 to −0.0039). Fitting to xG instead of goals led clearly on validation,
+but could not be told apart from goals on the hold-out.
+
+→ [`notebooks/01_match_outcome.ipynb`](notebooks/01_match_outcome.ipynb)
+
+### 2. An xG model built from what the warehouse carries beats distance and angle, and falls short of Understat where the missing data says it should
+
+The model sees a shot's location (distance and angle to goal), the situation, the body
+part, whether a pass set it up, home or away, and the minute. Penalties and own goals
+are excluded. Understat's published xG is the benchmark and never an input.
+
+> **A clear step past the distance-and-angle baseline** (log loss −0.011, interval
+> −0.0127 to −0.0095), **and well short of Understat** (+0.024, interval +0.0218 to
+> +0.0259). The gap is in telling goals from misses: AUC 0.757 against 0.799.
+> Calibration is not the problem.
+
+![Paired differences in log loss: better than distance and angle, worse than Understat as published or recalibrated](docs/images/02-comparisons.png)
+
+The gap is not spread evenly. It is largest in open play and from corners, and
+**vanishes on direct free kicks**, the one shot with no action before it. The warehouse
+does not carry the action before a shot (a cross, a through ball, a rebound), which
+Understat's model uses. The pattern is consistent with that being the missing piece. It
+is not proof: there is no interval per situation, and only 1,160 free kicks.
+
+![AUC by situation: the model trails Understat in open play, from corners and from set pieces, and matches it on direct free kicks](docs/images/02-gap-by-situation.png)
+
+What the model learned, drawn from its own predictions:
+
+![Expected goals over the attacking third for a right-footed shot and for a header, both assisted](docs/images/02-xg-map.png)
+
+Understat's own xG runs high on these seasons: 0.115 per shot against 0.099 scored.
+The headline comparison is therefore against Understat **recalibrated** on each
+training fold. That way the model gets no credit for calibration it would get for free.
+
+→ [`notebooks/02_shot_xg.ipynb`](notebooks/02_shot_xg.ipynb)
+
+---
+
+## Why these numbers can be trusted
+
+A model that has seen the future scores well in evaluation and badly in use, and the
+failure looks like success. Most of this repository exists to rule that out, with tests
+rather than care.
+
+**The split only ever runs forward.** Every fold trains on all matches strictly before a
+month and predicts that month. Settings were chosen on the blue months; the orange
+months were scored once, with everything fixed. For shots, a match is never split
+between training and test.
+
+![Seventeen walk-forward folds: each trains on everything before it and predicts one month; validation on 2024/25, hold-out on 2025/26](docs/images/01-walk-forward-split.png)
+
+**Every feature is tested for leakage, and the tests are tested.** Each feature row
+records the latest date it read, and a dbt test fails any row that read its own match
+date or later. The test suite then plants leaks on purpose and asserts that the right
+test fails, by name:
+
+- a rolling window that includes the match itself;
+- a season summary joined on the current season;
+- a feature model added without the leakage test;
+- a feature for the home side with no away twin;
+- a shot's outcome slipped in as a column;
+- penalties let in;
+- own goals let in.
+
+**The hold-out was looked at once, and the reports say so.** Every method's hold-out
+score carries a ledger entry keyed by a fingerprint of its settings, features and folds.
+Re-running reproduces the entry; changing anything and re-scoring would add a second.
+
+**Every comparison is paired and carries an interval.** It's a seeded bootstrap over
+matches; for shots, over matches rather than shots, because shots in one match are not
+independent. "Better" means the whole 95% interval is on one side of zero.
+
+**Every model has its baseline in the same report**: base rates and Elo for results,
+distance and angle (and Understat) for shots.
+
+Some of what those tests caught while this was built:
+
+- **A leakage test that never ran.** Planting a leak failed the build, but on a
+  different test. `dbt build` skips everything downstream of a failure, so the leakage
+  test itself had been skipped. It is now attached to each feature model separately,
+  with a guard that none can lack it.
+- **Two tests that checked nothing.** They looked up their table by name rather than
+  through dbt's `ref()`, so they ran *before* the model was built and passed on an
+  empty database.
+- **A citation three hours out.** A timestamp lost its time-zone offset when read from
+  JSON. It was wrong on a laptop in UTC−3 and right in CI, which runs in UTC.
+- **A promoted club given the wrong starting strength.** Club strength was ranked by
+  attack *minus* defence instead of plus, which calls a strong defensive side weak.
+
+---
+
+## What the models can and cannot do
+
+**They can:**
+
+- give well-calibrated probabilities for home win, draw and away win. When a Dixon-Coles
+  model says 60%, it happens close to 60% of the time;
+- rank shots by their chance of going in, from the information a warehouse of match
+  events carries.
+
+**They cannot:**
+
+- **Beat an Elo rating measurably** on one season of matches. The differences, around
+  0.002–0.003 RPS, are below what 1,752 matches can resolve. "Cannot be told apart" is
+  not "equal".
+- **Call draws.** A quarter of matches are draws; no model makes a draw the most likely
+  result in more than a few percent of them.
+- **Claim anything about the betting market.** The warehouse holds no odds, so the only
+  comparisons are with the baselines shown.
+- **See what came before a shot**, so an xG model from this data stays below Understat's.
+- **Say why a team wins.** What a model uses is not what causes results; nothing here
+  reads importances causally.
+
+**And the data has limits:** history starts in August 2024, so every club's rating and
+form is younger than its real record. Two complete seasons are a small dataset for
+machine learning, which is why every model here has few parameters, and why histogram
+boosting lost to logistic regression each time it was tried.
+
+---
+
+## How it is built
+
+```
+Part 2's metrics layer (analytics.duckdb)
+    │  attached READ_ONLY; a column contract and a staleness check gate every build
+    ▼
+dbt features ─ point-in-time, one row per thing to predict, leakage-tested
+    │
+    ▼
+src/football_ml ─ walk-forward splits, baselines, models, evaluation
+    │
+    ├─► reports/*.json   scores, intervals, calibration, the hold-out ledger
+    ├─► models/*/        a model card per model: snapshot, training range, features, commit
+    └─► notebooks/       one question each, reading the reports; nothing fitted there
+```
+
+| Concern | Choice | Why |
 |---|---|---|
-| league base rates | 0.2293 | 1.0731 |
-| Elo rating | 0.2076 | 1.0103 |
-| form model (logistic regression on last-5 form, xG, xPTS) | 0.2091 | 1.0225 |
-| Dixon-Coles, fitted to goals | 0.2054 | 1.0040 |
-| Dixon-Coles, fitted to xG | **0.2045** | **1.0026** |
+| Features | dbt + DuckDB | each feature has a stated grain and an as-of date, and a test can prove it never reads the future |
+| Models | scikit-learn, statsmodels, a Dixon-Coles likelihood on `scipy.optimize` | a few thousand matches: few parameters, nothing deep |
+| Evaluation | own `evaluate.py` | ranked probability score and paired/cluster bootstraps are not in scikit-learn; each is tested against hand-worked values |
+| Experiment tracking | committed model cards and reports | a handful of models, readable on GitHub without a server |
 
-- **Against Elo, no model is measurably better.** Every 95% paired bootstrap interval of
-  the difference straddles zero. For Dixon-Coles on xG it is −0.0070 to +0.0008.
-- **Modelling goals beats modelling the result on log loss.** Dixon-Coles on goals against
-  the form model: −0.0185, interval −0.0331 to −0.0039.
-- **Fitting to xG instead of goals** cannot be told apart on the hold-out, although it
-  led clearly on validation.
-- **The goals models are calibrated; Elo and the form model are not.** Where Elo gives
-  an away win 65%, it happens 52% of the time. Where Dixon-Coles gives 64%, it happens 64%.
+The design brief — every decision and every trap — is [`CLAUDE.md`](CLAUDE.md).
 
-Full numbers, calibration tables and caveats are in
-[`reports/match_outcome.json`](reports/match_outcome.json) and CLAUDE.md §12.
-
-These are comparisons against the baselines shown. Gold has no betting odds, so nothing
-here is compared with, or claims to beat, the market.
-
-## The shot model: past distance and angle, short of Understat
-
-How close can an xG model get to Understat's using what Gold carries: location,
-situation, body part, assist? Scored once on 2025/26 (43,457 non-penalty shots).
-Intervals come from resampling matches, not shots. Lower log loss is better; higher AUC
-means better at telling goals from misses:
-
-| | log loss | AUC |
-|---|---|---|
-| distance + angle | 0.2912 | 0.719 |
-| **this model** | **0.2802** | **0.757** |
-| Understat's xG, recalibrated | 0.2563 | 0.799 |
-
-- **Better than distance and angle:** −0.0111, interval −0.0127 to −0.0095.
-- **Clearly short of Understat:** +0.0238, interval +0.0218 to +0.0259.
-- **The gap vanishes on direct free kicks**, the one situation with no action before the
-  shot. It is widest in open play and from corners. That is consistent with what Gold
-  lacks: the pass or cross before the shot, which Understat's model uses. It is a reason
-  to add that column upstream, not a proof that it is the whole gap.
-- **Understat's published xG runs high on these seasons:** 0.115 per shot against 0.099
-  scored. The comparison is therefore made against it recalibrated, so the model doesn't
-  win on calibration it got for free.
+---
 
 ## Running it
 
@@ -76,37 +215,34 @@ Needs the three repositories side by side and Part 2's marts built.
 uv sync --extra dev
 (cd ../football-data-analytics && uv run dbt build --project-dir dbt --profiles-dir dbt)
 
-uv run pytest -q
-uv run dbt build --project-dir dbt --profiles-dir dbt    # writes data/features.duckdb
-uv run python -m football_ml.train match_outcome         # report + model cards
-uv run python -m football_ml.train shot_xg               # the shot model
+uv run dbt build --project-dir dbt --profiles-dir dbt    # features + leakage tests
+uv run pytest -q                                         # incl. the planted leaks
+
+uv run python -m football_ml.train match_outcome --validation-only   # choose, no hold-out
+uv run python -m football_ml.train match_outcome         # score the hold-out, write reports
+uv run python -m football_ml.train shot_xg
+
+uv run jupyter lab                                       # the notebooks read reports/
+uv run python scripts/export_readme_images.py            # the README's charts, from them
 ```
 
-Without real data, point both repositories at Part 2's synthetic fixture, as CI does:
+Without real data, CI's way: generate a synthetic Part 2 and point the build at it.
 
 ```bash
-export GOLD_SNAPSHOT_DIR=tests/fixtures/gold   # relative to Part 2's root, in both repos
+uv run python tests/synthetic_part2.py /tmp/part2
+PART2_DIR=/tmp/part2 uv run dbt build --project-dir dbt --profiles-dir dbt
 ```
 
-## CI
+## Repository map
 
-Two jobs. **`build`** needs nothing outside this repository. It generates a synthetic
-Part 2 from the column contract (`tests/synthetic_part2.py`), then runs lint, tests
-and `dbt build` on top of it. **`part2-integration`** checks out the real Part 2
-beside this repository, builds Part 2's marts on Part 2's own fixture, and runs
-`dbt build` here. That catches a Part 2 change that would break this repository.
-
-Part 2 is private, so the second job reads it with a **deploy key**: an SSH key that
-can read that one repository and nothing else. Without the key, the job reports that it
-was skipped and passes. To set it up once:
-
-```bash
-ssh-keygen -t ed25519 -N "" -C "football-data-science CI" -f part2_deploy_key
 ```
-
-1. In **football-data-analytics** → Settings → Deploy keys → *Add deploy key*: paste
-   `part2_deploy_key.pub`, and leave *Allow write access* unticked.
-2. In **football-data-science** → Settings → Secrets and variables → Actions → *New
-   repository secret*: name it `PART2_DEPLOY_KEY`, and paste the whole of
-   `part2_deploy_key` (the private half).
-3. Delete both files locally.
+contracts/part2_columns.json   every Part 2 column read, with its type
+dbt/models/sources/            src_* — thin selects over Part 2
+dbt/models/features/           feat_team_form, feat_match_outcome, feat_shots
+dbt/macros/, dbt/tests/        the leakage test, its coverage guard, grain and recomputation tests
+src/football_ml/               splits, baselines, models/, evaluate, train, train_xg, viz
+reports/                       match_outcome.json, shot_xg.json — the results
+models/<name>/<version>/       model cards (binaries are rebuilt, not committed)
+notebooks/                     01_match_outcome, 02_shot_xg
+tests/                         unit tests, planted leaks, a synthetic Part 2 generator
+```

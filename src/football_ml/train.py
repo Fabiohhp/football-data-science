@@ -101,8 +101,14 @@ def walk(folds: list[splits.Fold], forecast: Forecast) -> tuple[np.ndarray, np.n
     return np.concatenate(indices), np.vstack(probs)
 
 
-def _rounded(obj, places: int = 5):
-    """Round every float, so a re-run with the same inputs writes the same file."""
+def _rounded(obj, places: int = 6):
+    """Round every float, so a re-run with the same inputs writes the same file.
+
+    Six places, not fewer: whatever displays these numbers rounds them again, and a
+    stored 0.20455 shown to four places reads 0.2046 when the score was 0.204548 —
+    the notebook printed exactly that against the README's 0.2045. With six places,
+    the display's rounding is the only one that matters.
+    """
     if isinstance(obj, float):
         return round(obj, places)
     if isinstance(obj, dict):

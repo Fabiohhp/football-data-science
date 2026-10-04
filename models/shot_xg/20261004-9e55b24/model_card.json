@@ -1,6 +1,6 @@
 {
   "model": "shot_xg",
-  "version": "20261001-e1399d6",
+  "version": "20261004-9e55b24",
   "question": "How close can a location-and-context xG model get to Understat's, with what Gold carries? (CLAUDE.md §8 #3)",
   "estimator": {
     "family": "logistic",
@@ -51,35 +51,35 @@
   "selected_on": "validation folds 2024-11 to 2025-05, lowest log loss",
   "holdout_scores": {
     "baseline": {
-      "log_loss": 0.29123,
-      "brier": 0.08177,
-      "auc": 0.7191,
-      "mean_predicted": 0.10127,
-      "observed_rate": 0.09867,
+      "log_loss": 0.291233,
+      "brier": 0.081772,
+      "auc": 0.719101,
+      "mean_predicted": 0.101267,
+      "observed_rate": 0.098672,
       "n": 43457
     },
     "model": {
-      "log_loss": 0.28016,
-      "brier": 0.07907,
-      "auc": 0.75701,
-      "mean_predicted": 0.10069,
-      "observed_rate": 0.09867,
+      "log_loss": 0.280161,
+      "brier": 0.079071,
+      "auc": 0.757005,
+      "mean_predicted": 0.100691,
+      "observed_rate": 0.098672,
       "n": 43457
     },
     "understat": {
-      "log_loss": 0.25891,
-      "brier": 0.07328,
-      "auc": 0.79915,
-      "mean_predicted": 0.11514,
-      "observed_rate": 0.09867,
+      "log_loss": 0.258914,
+      "brier": 0.073284,
+      "auc": 0.799152,
+      "mean_predicted": 0.115145,
+      "observed_rate": 0.098672,
       "n": 43457
     },
     "understat_recalibrated": {
-      "log_loss": 0.25635,
-      "brier": 0.07239,
-      "auc": 0.79913,
-      "mean_predicted": 0.10007,
-      "observed_rate": 0.09867,
+      "log_loss": 0.256348,
+      "brier": 0.072392,
+      "auc": 0.799128,
+      "mean_predicted": 0.100074,
+      "observed_rate": 0.098672,
       "n": 43457
     }
   },
@@ -92,10 +92,10 @@
   ],
   "missing_from_gold": "Gold carries no last_action — the action before the shot (cross, through ball, rebound), which Understat parses and its model uses. Part 1 has it in Silver as last_action; it is not in Gold's fact_shots. Every gap to Understat below includes what that column would explain (CLAUDE.md §5, L10).",
   "git": {
-    "commit": "e1399d694a40432fe4c887d960e5171c1c314437",
+    "commit": "9e55b24a618455630b7f21aa7e58114055e245d6",
     "dirty": true
   },
-  "created_at": "2026-10-01T22:28:51+00:00",
+  "created_at": "2026-10-04T15:15:33+00:00",
   "limitations": [
     "Gold carries no last_action — the action before the shot (cross, through ball, rebound), which Understat parses and its model uses. Part 1 has it in Silver as last_action; it is not in Gold's fact_shots. Every gap to Understat below includes what that column would explain (CLAUDE.md §5, L10).",
     "Understat's xG is the benchmark, never an input (L9).",

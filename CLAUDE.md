@@ -34,7 +34,7 @@ portfolio/football-data/
 |-------|-------|-------|--------|
 | Part 1 — Data Engineering & Architecture | Ingestion, Airflow, Bronze/Silver/Gold, data quality | `../football-data-engineering` | Complete |
 | Part 2 — Analytics & BI | Metrics layer, analyses, dashboard | `../football-data-analytics` | Complete |
-| **Part 3 — Machine Learning** | Match outcome and xG models, evaluation | **this repository** | **Phases 0–4 done; the README front page (phase 6) is next** |
+| **Part 3 — Machine Learning** | Match outcome and xG models, evaluation | **this repository** | **Complete — phases 0–4 and 6; phase 5 dropped (§9)** |
 
 **The deliverable is a model a reviewer can trust the score of** — not the
 highest score. The audience is someone hiring for data science or ML: they will
@@ -52,7 +52,7 @@ feature pipelines, model selection, xG models built from `fact_shots` — is her
 
 ## 2. Status, and what this repository inherits
 
-**Models #1–#3 and their baselines are built (phases 0–4, §12); #4 is not.** The data is: Part 1's Gold holds three big-5 seasons
+**Models #1–#3 and their baselines are built and written up (§12); #4 was not built.** The data is: Part 1's Gold holds three big-5 seasons
 (2024/25 and 2025/26 complete, 2026/27 in progress — about 3,700 matches and
 94,000 shots as of 2026-09), and Part 2's metrics layer builds on it with 131
 passing dbt tests. Treat those counts as a reading; the authority is the
@@ -366,10 +366,14 @@ football-data-science/
 │   ├── models/                # one module per model family
 │   ├── evaluate.py            # RPS, log loss, Brier, calibration, paired bootstrap
 │   ├── train.py               # fit → model card → report
-│   └── viz.py                 # calibration and reliability plots, Part 2's style
+│   ├── train_xg.py            # the shot model's pipeline, same discipline
+│   └── viz.py                 # every chart, Part 2's palette; draws reports, fits nothing
 ├── models/                    # gitignored except model cards: <name>/<version>/
 ├── reports/                   # committed: scores, intervals, calibration bins (JSON)
-├── notebooks/                 # NN_question.ipynb, outputs committed
+├── notebooks/                 # 01_match_outcome, 02_shot_xg — read reports/, outputs committed
+├── docs/images/               # the README's charts, lifted from the notebooks' outputs
+├── scripts/
+│   └── export_readme_images.py  # notebooks -> docs/images, by `readme:` cell tag
 ├── tests/                     # pytest: metrics against hand-computed values, splits
 │                              #   never overlap in time, Elo updates, card contents
 ├── data/                      # gitignored except .gitkeep: features.duckdb
@@ -400,8 +404,8 @@ cannot check out another private repository — the reason `build` no longer dep
 
 ## 11. Common Commands
 
-> The notebooks are **not built yet**. If a command fails because it is not built, say
-> so instead of inventing output.
+> If a command fails because something is not built or not running, say so instead of
+> inventing output.
 >
 > Paths: `PART2_DIR` (default `../football-data-analytics`) locates Part 2;
 > `FEATURES_DUCKDB` (default `data/features.duckdb`) is this repository's database;
@@ -425,7 +429,8 @@ uv run python -m football_ml.train match_outcome --validation-only  # develop he
 uv run python -m football_ml.train match_outcome          # fit, card, report — scores the
                                                           #   hold-out; the ledger counts it
 uv run python -m football_ml.train shot_xg                # the shot model, same discipline
-uv run jupyter lab
+uv run jupyter lab                                        # notebooks read reports/ only
+uv run python scripts/export_readme_images.py             # README charts from the notebooks
 ```
 
 ---
@@ -443,7 +448,7 @@ the next.
 | 3 ✅ | Model #2 (Dixon-Coles on goals and on xG) | Compared with #1 on the same splits |
 | 4 ✅ | Model #3 (xG) against Understat's | Calibration plot and log loss beside Understat's, with the L10 gap stated |
 | 5 ✗ | ~~Prospective scoring, predictions page in Part 2's dashboard~~ | **Dropped** — built, then reverted: the repository works on the data that exists (§9) |
-| 6 | README as the front page — and the portfolio's closing chapter | A reviewer understands what the models can and cannot do without running anything |
+| 6 ✅ | README as the front page — and the portfolio's closing chapter | A reviewer understands what the models can and cannot do without running anything |
 
 **What phase 0 established.** Part 2's `analytics.duckdb` is attached `READ_ONLY` as
 `part2` in `dbt/profiles.yml`, and two `on-run-start` hooks run before any model is
@@ -638,7 +643,7 @@ How it was built, and what bit:
   they found no table and passed; on a rebuild they checked the previous build. The
   planted-leak test for the allowlist found it. Both now read through `ref()` and fail if
   they find no columns at all. **Any test that inspects a model's columns must `ref()` it.**
-- **Planted leaks, now eight:** L1, L2, a feature model without the leakage test, a
+- **Planted leaks, now seven:** L1, L2, a feature model without the leakage test, a
   one-sided feature, an outcome column in `feat_shots`, penalties let in, own goals let in
   — each asserted to fail on the specific test meant to catch it.
 - **Splits and intervals by match (L5).** `splits.aligned` gives shots the match models'
@@ -646,6 +651,32 @@ How it was built, and what bit:
   `paired_difference(groups=…)` is a cluster bootstrap — on 10 correlated rows per group
   its interval comes out more than 2.5× wider than resampling rows, which is the
   overconfidence it avoids.
+
+**What phase 6 established.** The README is the front page: findings first, each with
+its chart and interval, then why the numbers can be trusted, then what the models can and
+cannot do. It follows Part 2's pattern so the portfolio reads as one piece.
+
+- **Two notebooks, one question each** — `01_match_outcome` (models #1 and #2 against
+  Elo) and `02_shot_xg` (model #3 against Understat). They **read only the committed
+  reports**: nothing is fitted in a notebook (§4), so they run anywhere with no data,
+  and CI's `notebooks` job re-executes them on every push.
+- **`viz.py`** draws every chart from a report block, in Part 2's palette (validated for
+  colour-blind separation): blue for the model a chart is about, orange for what it is
+  measured against, grey for reference. The walk-forward timeline is drawn from the
+  report's own `plan`, so it is the split that produced the scores.
+- **The README's charts are lifted from the executed notebooks**, byte for byte, by a
+  `readme:<file>` cell tag (`scripts/export_readme_images.py`); CI fails if
+  `docs/images` differs from the notebooks' committed figures.
+- **The xG map** is the final shot model's own predictions on a pitch grid, stored in
+  `reports/shot_xg.json` (`surface`) by `train_xg.py`, with the geometry read from the
+  same dbt vars `feat_shots` uses. Adding it re-ran training: the hold-out and the ledger
+  were unchanged.
+- **Reports store six decimal places.** The notebook first printed 0.2046 for a score
+  the docs give as 0.2045 — a stored 0.20455 rounded again. With six places the display's
+  rounding is the only one; re-running moved no number by more than 0.000005, the old
+  rounding boundary, and left both ledgers untouched.
+- **One model card per model** is kept (the latest); earlier versions are in git history.
+  Cards record `git.dirty` — re-run training on a clean tree to stamp a clean one.
 
 ---
 
