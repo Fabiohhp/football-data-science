@@ -52,3 +52,13 @@ models:
         data_tests: [not_null]
       - name: gold_matches
         data_tests: [not_null]
+
+  - name: src_teams
+    description: >
+      **Grain: one row per club.** Display names for the predictions export; never read
+      by a feat_ model. Key 0 is Part 2's `Unknown` member (its trap 3).
+    columns:
+      - name: team_key
+        data_tests: [unique, not_null]
+      - name: team_name
+        data_tests: [not_null]

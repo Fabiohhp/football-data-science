@@ -45,7 +45,7 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from football_ml import data, splits
+from football_ml import data, predictions, splits
 from football_ml import evaluate as ev
 from football_ml.baselines import BaseRates, EloForecast, EloSettings, pre_match_elo
 from football_ml.models.dixon_coles import DixonColes, DixonColesSettings
@@ -101,8 +101,14 @@ def walk(folds: list[splits.Fold], forecast: Forecast) -> tuple[np.ndarray, np.n
     return np.concatenate(indices), np.vstack(probs)
 
 
-def _rounded(obj, places: int = 5):
-    """Round every float, so a re-run with the same inputs writes the same file."""
+def _rounded(obj, places: int = 6):
+    """Round every float, so a re-run with the same inputs writes the same file.
+
+    Six places, not fewer: whatever displays these numbers rounds them again, and a
+    stored 0.20455 shown to four places reads 0.2046 when the score was 0.204549 — the
+    predictions page did exactly that, against the 0.2045 in the README. With six
+    places, the display's rounding is the only one that matters.
+    """
     if isinstance(obj, float):
         return round(obj, places)
     if isinstance(obj, dict):
@@ -375,6 +381,11 @@ def train_match_outcome(*, write: bool = True, validation_only: bool = False) ->
             (model_dir / "model_card.json").write_text(_to_json(card))
         report_path.parent.mkdir(exist_ok=True)
         report_path.write_text(_to_json(report))
+        # Every hold-out match with every method's probabilities, for the export to
+        # select from (CLAUDE.md §9). Gitignored under data/, like all derived data.
+        predictions.write(
+            "match_outcome_holdout", predictions.table(frame.iloc[idx], holdout_probs)
+        )
 
     features.con.close()
     return report

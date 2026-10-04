@@ -34,7 +34,7 @@ portfolio/football-data/
 |-------|-------|-------|--------|
 | Part 1 — Data Engineering & Architecture | Ingestion, Airflow, Bronze/Silver/Gold, data quality | `../football-data-engineering` | Complete |
 | Part 2 — Analytics & BI | Metrics layer, analyses, dashboard | `../football-data-analytics` | Complete |
-| **Part 3 — Machine Learning** | Match outcome and xG models, evaluation | **this repository** | **Phases 0–4 of 6 — models #1–#3 built** |
+| **Part 3 — Machine Learning** | Match outcome and xG models, evaluation | **this repository** | **Phases 0–4 of 6 done; phase 5 built, awaiting its first prospective score** |
 
 **The deliverable is a model a reviewer can trust the score of** — not the
 highest score. The audience is someone hiring for data science or ML: they will
@@ -414,8 +414,8 @@ cannot check out another private repository — the reason `build` no longer dep
 
 ## 11. Common Commands
 
-> `export_predictions.py` and the notebooks are **not built yet** (phases 3–5). If a
-> command fails because it is not built, say so instead of inventing output.
+> The notebooks are **not built yet**. If a command fails because it is not built, say
+> so instead of inventing output.
 >
 > Paths: `PART2_DIR` (default `../football-data-analytics`) locates Part 2;
 > `FEATURES_DUCKDB` (default `data/features.duckdb`) is this repository's database;
@@ -438,8 +438,16 @@ uv run python -m football_ml.train match_outcome --validation-only  # develop he
                                                           #   the hold-out is untouched
 uv run python -m football_ml.train match_outcome          # fit, card, report — scores the
                                                           #   hold-out; the ledger counts it
-uv run python scripts/export_predictions.py
-uv run jupyter lab
+uv run python -m football_ml.train shot_xg                # the shot model, same discipline
+
+# Prospective evaluation (§7). Freeze from a CLEAN tree — it refuses otherwise — and
+# commit the card it writes. Then, once Part 2 holds a newer snapshot and the features
+# are rebuilt from it, score the frozen model on the matches played since.
+uv run python -m football_ml.freeze                       # models/frozen/<id>/freeze_card.json
+uv run python -m football_ml.prospective                  # reports/prospective_<id>.json
+
+uv run python scripts/export_predictions.py               # -> exports/predictions/*.json;
+                                                          #   Part 2's export copies them
 ```
 
 ---
@@ -456,7 +464,7 @@ the next.
 | 2 ✅ | Baselines + model #1, `evaluate.py`, first report | RPS for base rates, Elo and the model, with paired intervals |
 | 3 ✅ | Model #2 (Dixon-Coles on goals and on xG) | Compared with #1 on the same splits |
 | 4 ✅ | Model #3 (xG) against Understat's | Calibration plot and log loss beside Understat's, with the L10 gap stated |
-| 5 | Prospective scoring on the next snapshot, predictions page in Part 2's dashboard | A frozen model scored on matches played after it was frozen |
+| 5 ◐ | Prospective scoring on the next snapshot, predictions page in Part 2's dashboard | A frozen model scored on matches played after it was frozen — **built and tested on synthetic snapshots; the real freeze and its first score are pending** |
 | 6 | README as the front page — and the portfolio's closing chapter | A reviewer understands what the models can and cannot do without running anything |
 
 **What phase 0 established.** Part 2's `analytics.duckdb` is attached `READ_ONLY` as
@@ -661,6 +669,54 @@ How it was built, and what bit:
   its interval comes out more than 2.5× wider than resampling rows, which is the
   overconfidence it avoids.
 
+**What phase 5 established** — so far. The machinery is built and proven on synthetic
+snapshots; the real test needs time to pass.
+
+- **`football_ml.freeze`** refits all five match methods with the settings validation
+  chose (read from `reports/match_outcome.json`, never re-selected) on every match in the
+  current snapshot, and writes `models/frozen/<id>/` — the bundle (gitignored) and
+  `freeze_card.json` (committed): the moment, the commit, the snapshot, the training range,
+  the settings, and the bundle's SHA-256. **It refuses a dirty working tree**: the card's
+  commit is only evidence if it contains the code that fitted the model. It also refuses
+  when the features no longer match the ones model #1's settings were chosen with.
+- **What "frozen" means per method.** Fitted parameters are fixed — Dixon-Coles's club
+  strengths, model #1's coefficients, Elo's slope and cut-points. What moves is what is a
+  feature: model #1 reads form rebuilt from the later snapshot, and Elo its ratings,
+  updated through the new results with each rating from strictly earlier dates (L4).
+- **Which matches count.** `scores_matches_after` is the later of the last match fitted
+  on and the day of the freeze: a match already played when the model was frozen is not a
+  prospective test, even if it was not in the data yet. Tested both ways.
+- **`football_ml.prospective`** verifies the bundle's hash against the card before
+  anything else, waits (and says so) until the features come from a newer snapshot with
+  matches after the freeze, then scores them — paired intervals over matches, draws and
+  calibration — into `reports/prospective_<id>.json`.
+- **`tests/test_prospective.py`** runs the whole procedure on two synthetic snapshots
+  (`synthetic_part2.make_part2(later_rounds=…)`, in which every earlier match is identical
+  across the two): freeze on S1, wait, export S2, score exactly the new matches; and the
+  refusals — a tampered bundle, a dirty tree, no commit.
+- **The predictions page** is Part 2's fifth (decided above): `export_predictions.py`
+  writes display rows for the 2025/26 hold-out — what Dixon-Coles on xG, the
+  *validation* winner, said before each match, beside Elo — and the prospective matches
+  once there are any. Part 2's smoke tests run it in Chromium and Firefox, locally on the
+  real export and in CI on a synthetic fixture of the same format.
+
+Two things this phase caught:
+
+- **Double rounding.** Reports stored five decimal places and the export rounded again
+  to four, so the page showed 0.2046 for a score of 0.204548 that the README gives as
+  0.2045. Reports now store six; a value is rounded once, for display. Re-running both
+  trainings with that change moved no result (every difference was 0.000005, a value
+  sitting on the old rounding boundary) and left both ledgers untouched.
+- **A new field is not a new result.** After phase 4 added `groups` to every comparison,
+  the re-run report differed from the committed one in all fourteen comparisons — by that
+  one empty field and nothing else. Checked before trusting it.
+
+**To finish phase 5:** commit this phase; run `python -m football_ml.freeze` on the clean
+tree and commit the card; after the next matchdays, re-export Part 2's snapshot and
+rebuild its marts, rebuild the features here, run `python -m football_ml.prospective`,
+and commit the report. The first score will be a few dozen matches — the report says
+plainly that its interval is wide.
+
 ---
 
 ## 13. Open decisions
@@ -668,8 +724,9 @@ How it was built, and what bit:
 - **Publishing.** Predictions are derived from Football-Data and Understat data;
   Part 2 §13's licensing question covers them too. `exports/` stays gitignored
   until that is decided.
-- **Where predictions are shown.** A fifth page in Part 2's dashboard (preferred:
-  one site) or a page in this repository. Decide in phase 5.
+- ~~**Where predictions are shown.**~~ **Decided in phase 5: a fifth page in Part 2's
+  dashboard**, `site/predictions.html`, which copies `exports/predictions/` through
+  Part 2's own export (`PREDICTIONS_DIR`). Nothing here writes into Part 2.
 - **`last_action` in Gold** (L10). Raise it as a Part 1 task if model #3 shows the
   gap to Understat matters; it would also change Gold's contract in Part 2. **Phase 4
   says it does** (§12): the gap is 0.021 log loss and 0.04 AUC, largest in open play and

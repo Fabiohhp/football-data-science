@@ -62,6 +62,13 @@
         {"name": "is_goal", "type": "BOOLEAN"},
         {"name": "is_penalty", "type": "BOOLEAN"}
       ]
+    },
+    "stg_teams": {
+      "_why": "Display names for the predictions export (CLAUDE.md §9): team_name is Part 2's conformed, HTML-unescaped name (its trap 15). Read by src_teams. Never a feature.",
+      "columns": [
+        {"name": "team_key", "type": "BIGINT"},
+        {"name": "team_name", "type": "VARCHAR"}
+      ]
     }
   }
 }

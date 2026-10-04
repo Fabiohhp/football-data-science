@@ -12,10 +12,11 @@ The last part of a three-repository portfolio:
 | 2 — Analytics & BI | [`football-data-analytics`](../football-data-analytics) | metrics layer, analyses, dashboard |
 | **3 — Machine Learning** | **this repository** | models and their evaluation |
 
-> **Status: phases 0–4 of 6.** Features, walk-forward splits, baselines, two match
-> models and a shot xG model are built. Prospective scoring is not built yet. The design
-> brief, including the leakage traps every model here must avoid, is
-> [`CLAUDE.md`](CLAUDE.md).
+> **Status: phases 0–4 of 6 done; phase 5 built.** Features, walk-forward splits,
+> baselines, two match models and a shot xG model are scored. Freezing, prospective
+> scoring and a predictions page in Part 2's dashboard are built; the first prospective
+> score waits for matches played after the freeze. The design brief, including the
+> leakage traps every model here must avoid, is [`CLAUDE.md`](CLAUDE.md).
 
 ## Results so far: nothing beats Elo measurably, but goals models are better calibrated
 
@@ -68,6 +69,21 @@ means better at telling goals from misses:
   scored. The comparison is therefore made against it recalibrated, so the model doesn't
   win on calibration it got for free.
 
+## The test no split can fool: prospective scoring
+
+Every score above comes from a hold-out that the code kept separate. The stronger test is
+a model **frozen** at one moment and scored on matches played **after** it.
+
+- `python -m football_ml.freeze` fits the match models on everything in the current
+  snapshot. It writes a committed card recording the time, the commit, the snapshot
+  and a hash of the fitted model, and it refuses to run on uncommitted code.
+- `python -m football_ml.prospective`, run once a later snapshot exists, checks the
+  hash first. It then scores only matches dated after the freeze.
+
+The predictions themselves appear in Part 2's dashboard on a fifth page. It shows what
+the model said before each 2025/26 match next to what happened, with a calibration
+chart, and adds the prospective matches as they arrive.
+
 ## Running it
 
 Needs the three repositories side by side and Part 2's marts built.
@@ -80,6 +96,9 @@ uv run pytest -q
 uv run dbt build --project-dir dbt --profiles-dir dbt    # writes data/features.duckdb
 uv run python -m football_ml.train match_outcome         # report + model cards
 uv run python -m football_ml.train shot_xg               # the shot model
+uv run python -m football_ml.freeze                      # from a clean, committed tree
+uv run python -m football_ml.prospective                 # after a newer snapshot
+uv run python scripts/export_predictions.py              # JSON for Part 2's dashboard
 ```
 
 Without real data, point both repositories at Part 2's synthetic fixture, as CI does:
