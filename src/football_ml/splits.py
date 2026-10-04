@@ -19,8 +19,8 @@ The data is cut into three periods, in order:
 
 ``live``
     Anything after the hold-out — the season in progress. In no fold at all: it is
-    the prospective test (CLAUDE.md §7, phase 5), and looking at it now would spend
-    it.
+    incomplete, so it is neither scored nor trained on, and every result here is on
+    seasons every league has finished.
 
 Which season is complete is read from the data, not from a list: a competition's
 season is complete when it has played every fixture of a double round robin,

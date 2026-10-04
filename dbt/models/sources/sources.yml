@@ -34,7 +34,3 @@ sources:
           competition attached. Includes penalties and own goals; feat_shots removes
           them. `xg` is Understat's model — the benchmark for model #3, never a feature
           of it (CLAUDE.md §5, L9).
-      - name: stg_teams
-        description: >
-          One row per club, with Part 2's conformed display name. Read only to label the
-          predictions export (CLAUDE.md §9); never a feature.

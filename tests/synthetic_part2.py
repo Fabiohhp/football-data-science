@@ -59,9 +59,6 @@ SEASONS = [
     ),
     ("2026/27", [1, 2, 3, 5], ["2026-08-15"]),  # in progress: one round played
 ]
-# Dates of the rounds a LATER snapshot adds to the in-progress season — for the
-# prospective tests, which freeze on one snapshot and score on the next.
-LATER_ROUNDS = ["2026-10-17", "2026-11-14", "2026-12-12"]
 NO_XG_MATCH = ("2025/26", 2, 0)  # season, round index, match index within the round
 STRENGTH = {1: 0.5, 2: 0.2, 3: -0.1, 4: -0.4, 5: -0.3}
 
@@ -75,15 +72,11 @@ def _rounds(clubs: list[int]) -> list[list[tuple[int, int]]]:
     return first_half + [[(a, h) for h, a in r] for r in first_half]
 
 
-def team_matches(seasons=SEASONS) -> list[dict]:
-    """int_team_matches rows: one per club per match, two per match, mirrored.
-
-    Random draws are made in match order, so adding rounds at the end of the last
-    season leaves every earlier match exactly as it was — as a later snapshot would.
-    """
+def team_matches() -> list[dict]:
+    """int_team_matches rows: one per club per match, two per match, mirrored."""
     rng = np.random.default_rng(20260920)
     rows, match_key = [], 0
-    for season, clubs, dates in seasons:
+    for season, clubs, dates in SEASONS:
         for r, (day, fixtures) in enumerate(zip(dates, _rounds(clubs), strict=False)):
             for m, (home, away) in enumerate(fixtures):
                 match_key += 1
@@ -118,12 +111,12 @@ def team_matches(seasons=SEASONS) -> list[dict]:
     return rows
 
 
-def team_seasons(matches: list[dict], seasons=SEASONS) -> list[dict]:
+def team_seasons(matches: list[dict]) -> list[dict]:
     """mart_team_season rows, aggregated the way Part 2 does, for the columns read."""
     by_team: dict[tuple, list[dict]] = defaultdict(list)
     for row in matches:
         by_team[(row["team_key"], row["season"], row["competition_code"])].append(row)
-    scheduled = {season: 2 * (len(clubs) - 1) for season, clubs, _ in seasons}
+    scheduled = {season: 2 * (len(clubs) - 1) for season, clubs, _ in SEASONS}
     played_by_season: dict[str, list[int]] = defaultdict(list)
     for (_, season, _), rows in by_team.items():
         played_by_season[season].append(len(rows))
@@ -220,52 +213,26 @@ def shots(matches: list[dict]) -> list[dict]:
     return rows
 
 
-def build_rows(later_rounds: int = 0) -> dict[str, list[dict]]:
-    """Every table's rows; ``later_rounds`` adds rounds to the in-progress season."""
-    *earlier, (season, clubs, dates) = SEASONS
-    seasons = [*earlier, (season, clubs, dates + LATER_ROUNDS[:later_rounds])]
-    matches = team_matches(seasons)
-    return {
-        "int_team_matches": matches,
-        "mart_team_season": team_seasons(matches, seasons),
-        "mart_shots": shots(matches),
-        "stg_teams": [{"team_key": 0, "team_name": "Unknown"}]
-        + [
-            {"team_key": k, "team_name": f"Club {k}"}
-            for k in sorted({r["team_key"] for r in matches})
-        ],
-    }
-
-
-def _matches(rows: dict) -> int:
-    return len({r["match_key"] for r in rows["int_team_matches"]})
-
-
-ROWS = build_rows()
-MATCHES = _matches(ROWS)
+ROWS = {"int_team_matches": team_matches()}
+ROWS["mart_team_season"] = team_seasons(ROWS["int_team_matches"])
+ROWS["mart_shots"] = shots(ROWS["int_team_matches"])
+MATCHES = len({r["match_key"] for r in ROWS["int_team_matches"]})
 
 
 def make_part2(
     root: Path,
     *,
-    matches_in_manifest: int | None = None,
+    matches_in_manifest: int = MATCHES,
     drop_column: str | None = None,
     retype: dict[str, str] | None = None,
     drop_table: str | None = None,
-    later_rounds: int = 0,
-    exported_at: str = EXPORTED_AT,
 ) -> Path:
     """Write a Part 2 checkout — ``data/analytics.duckdb`` and its manifest — under ``root``.
 
     ``drop_column`` and ``retype`` apply to ``int_team_matches``; each keyword
     introduces one defect, for the tests that check the build refuses it.
-    ``later_rounds`` and ``exported_at`` make a later snapshot of the same history.
     """
-    rows_by_table = ROWS if later_rounds == 0 else build_rows(later_rounds)
-    matches = _matches(rows_by_table)
-    if matches_in_manifest is None:
-        matches_in_manifest = matches
-    missing = set(CONTRACT["tables"]) - set(rows_by_table) - {"stg_matches"}
+    missing = set(CONTRACT["tables"]) - set(ROWS) - {"stg_matches"}
     if missing:
         raise RuntimeError(
             f"The contract lists {sorted(missing)}, which tests/synthetic_part2.py does not "
@@ -277,9 +244,9 @@ def make_part2(
     db.unlink(missing_ok=True)
     con = duckdb.connect(str(db))
 
-    con.execute(f"CREATE TABLE stg_matches AS SELECT range AS match_key FROM range({matches})")
+    con.execute(f"CREATE TABLE stg_matches AS SELECT range AS match_key FROM range({MATCHES})")
 
-    for table, rows in rows_by_table.items():
+    for table, rows in ROWS.items():
         columns = [(c["name"], c["type"]) for c in CONTRACT["tables"][table]["columns"]]
         if table == "int_team_matches":
             columns = [
@@ -304,15 +271,15 @@ def make_part2(
         con.execute(f"DROP TABLE {drop_table}")
     con.close()
 
-    dates = [date.fromisoformat(r["match_date"]) for r in rows_by_table["int_team_matches"]]
+    dates = [date.fromisoformat(r["match_date"]) for r in ROWS["int_team_matches"]]
     manifest = {
-        "exported_at": exported_at,
+        "exported_at": EXPORTED_AT,
         "source": "synthetic Part 2 (tests/synthetic_part2.py)",
         "match_date_range": {"min": str(min(dates)), "max": str(max(dates))},
         "tables": {
             "fact_matches": {"rows": matches_in_manifest},
             "fact_player_events": {"rows": 0},
-            "fact_shots": {"rows": len(rows_by_table["mart_shots"])},
+            "fact_shots": {"rows": len(ROWS["mart_shots"])},
         },
     }
     (root / "data" / "gold" / "manifest.json").write_text(json.dumps(manifest, indent=2))

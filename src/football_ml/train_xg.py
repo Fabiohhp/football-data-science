@@ -108,7 +108,7 @@ def train_shot_xg(*, write: bool = True, validation_only: bool = False) -> dict:
     holdout_end = match_plan.holdout[-1].test_end
 
     shots = features.table("feat_shots").sort_values(["as_of_date", "shot_key"], kind="stable")
-    # The live season is touched by nothing here (phase 5's prospective test).
+    # The in-progress season is touched by nothing here: it is incomplete.
     shots = shots[pd.to_datetime(shots["as_of_date"]).dt.date < holdout_end].reset_index(drop=True)
     plan = splits.aligned(match_plan, shots["as_of_date"])
     y = shots["target_is_goal"].astype(int).to_numpy()
