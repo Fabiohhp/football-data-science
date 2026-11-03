@@ -19,9 +19,9 @@ This project is **Part 3 — Machine Learning**, the last part of a football
 yet** — match outcomes, and the chance that a shot becomes a goal — and evaluates
 them honestly against baselines.
 
-It is its own repository, sitting next to the two that feed it. **Only the
-sibling relationship matters** — every path is relative, so the three can live
-anywhere as long as they stay side by side:
+It is its own repository, fed by the two beside it. **A clone needs neither:**
+`part2_snapshot/` holds the Part 2 tables it reads. The sibling layout matters only
+for refreshing that copy and for `PART2_DIR=../football-data-analytics`:
 
 ```
 portfolio/football-data/
@@ -54,7 +54,7 @@ feature pipelines, model selection, xG models built from `fact_shots` — is her
 
 **Models #1–#3 and their baselines are built and written up (§12); #4 was not built.** The data is: Part 1's Gold holds three big-5 seasons
 (2024/25 and 2025/26 complete, 2026/27 in progress — about 3,700 matches and
-94,000 shots as of 2026-09), and Part 2's metrics layer builds on it with 131
+94,000 shots as of 2026-09), and Part 2's metrics layer builds on it with 137
 passing dbt tests. Treat those counts as a reading; the authority is the
 snapshot's `manifest.json`.
 
@@ -110,7 +110,7 @@ Considered and not chosen:
 ## 4. Architecture
 
 ```
-  ../football-data-analytics/data/analytics.duckdb   (Part 2's marts + int_ models)
+  part2_snapshot/data/analytics.duckdb   (a copy of Part 2's marts + int_ models)
           │  ATTACH ... (READ_ONLY) — the manifest travels with it
           ▼
   data/features.duckdb
@@ -350,6 +350,7 @@ football-data-science/
 ├── .github/workflows/ci.yml   # lint, pytest, dbt build on the fixture, execute notebooks
 ├── contracts/
 │   └── part2_columns.json     # every Part 2 column read, with types; fails on drift
+├── part2_snapshot/            # committed: those tables, real data, and their manifest
 ├── dbt/
 │   ├── dbt_project.yml        # form_window, min_history vars
 │   ├── profiles.yml           # DuckDB path + READ_ONLY attach of Part 2's database
@@ -373,6 +374,7 @@ football-data-science/
 ├── notebooks/                 # 01_match_outcome, 02_shot_xg — read reports/, outputs committed
 ├── docs/images/               # the README's charts, lifted from the notebooks' outputs
 ├── scripts/
+│   ├── export_part2_snapshot.py # a built Part 2 -> part2_snapshot/
 │   └── export_readme_images.py  # notebooks -> docs/images, by `readme:` cell tag
 ├── tests/                     # pytest: metrics against hand-computed values, splits
 │                              #   never overlap in time, Elo updates, card contents
@@ -383,22 +385,21 @@ football-data-science/
 └── README.md
 ```
 
-**CI and the fixture — two jobs.** CI never has real data, and the repositories are
-private, so a workflow here cannot read Part 2 without a credential.
+**CI and the fixture — two jobs.**
 
 - **`build`** is self-contained and always runs. `tests/synthetic_part2.py` generates a
   stand-in Part 2 from `contracts/part2_columns.json` — every contracted table with
   exactly its columns and types — holding a four-club league over three seasons: a
   season boundary, a relegated and a promoted club, a match with no xG, and a partial
-  live season. Lint, pytest (which uses the same generator) and `dbt build` run on it.
+  live season. Lint, pytest (which uses the same generator) and `dbt build` run on it,
+  and a second `dbt build` runs on `part2_snapshot/`, the path a fresh clone takes.
 - **`part2-integration`** checks Part 2 out beside this repository, builds Part 2's marts
   on Part 2's own fixture — which carries the Gold-level traps the synthetic Part 2 does
   not — and runs `dbt build` on the result. It is how a Part 2 change that breaks this
-  repository shows up. It needs the `PART2_DEPLOY_KEY` secret (a read-only deploy key on
-  Part 2, README "CI"); without it the job reports it was skipped and passes.
+  repository shows up.
 
-The first design had only the second job. It failed on GitHub because the default token
-cannot check out another private repository — the reason `build` no longer depends on it.
+The first design had only the second job, and it failed while the repositories were
+private — the reason `build` does not depend on it.
 
 ---
 
@@ -407,7 +408,7 @@ cannot check out another private repository — the reason `build` no longer dep
 > If a command fails because something is not built or not running, say so instead of
 > inventing output.
 >
-> Paths: `PART2_DIR` (default `../football-data-analytics`) locates Part 2;
+> Paths: `PART2_DIR` (default `part2_snapshot`) locates Part 2;
 > `FEATURES_DUCKDB` (default `data/features.duckdb`) is this repository's database;
 > `GOLD_SNAPSHOT_DIR` is **Part 2's** variable with Part 2's meaning — relative to
 > Part 2's root — and aims both repositories at the same snapshot. Export
@@ -420,9 +421,6 @@ uv run pytest -q
 uv run ruff check .
 uv run black --check .
 
-# Part 2's marts must be built first — this repository reads them.
-(cd ../football-data-analytics && uv run dbt build --project-dir dbt --profiles-dir dbt)
-
 uv run dbt build --project-dir dbt --profiles-dir dbt     # features + leakage tests
 uv run python -m football_ml.train match_outcome --validation-only  # develop here:
                                                           #   the hold-out is untouched
@@ -431,6 +429,10 @@ uv run python -m football_ml.train match_outcome          # fit, card, report �
 uv run python -m football_ml.train shot_xg                # the shot model, same discipline
 uv run jupyter lab                                        # notebooks read reports/ only
 uv run python scripts/export_readme_images.py             # README charts from the notebooks
+
+# Refresh part2_snapshot/ when Part 2's marts change, and commit the result.
+(cd ../football-data-analytics && uv run dbt build --project-dir dbt --profiles-dir dbt)
+uv run python scripts/export_part2_snapshot.py ../football-data-analytics
 ```
 
 ---
@@ -442,7 +444,7 @@ the next.
 
 | Phase | Deliverable | Done when |
 |-------|-------------|-----------|
-| 0 ◐ | Repo skeleton, READ_ONLY attach of Part 2, column contract, CI on Part 2's fixture | CI builds Part 2 on the fixture and this repository's empty dbt project on top of it — **`build` is now self-contained (§10); the Part 2 job waits on the deploy key** |
+| 0 ◐ | Repo skeleton, READ_ONLY attach of Part 2, column contract, CI on Part 2's fixture | CI builds Part 2 on the fixture and this repository's empty dbt project on top of it — **`build` is self-contained, and the Part 2 job runs now that Part 2 is public (§10)** |
 | 1 ✅ | `feat_match_outcome`, walk-forward splits, `assert_no_feature_reads_the_future` | The test passes, and fails when a window's shift is removed on purpose |
 | 2 ✅ | Baselines + model #1, `evaluate.py`, first report | RPS for base rates, Elo and the model, with paired intervals |
 | 3 ✅ | Model #2 (Dixon-Coles on goals and on xG) | Compared with #1 on the same splits |
@@ -682,8 +684,9 @@ cannot do. It follows Part 2's pattern so the portfolio reads as one piece.
 
 ## 13. Open decisions
 
-- **Publishing.** The reports and model cards are derived from Football-Data and
-  Understat data; Part 2 §13's licensing question covers them too.
+- **Publishing: decided.** `part2_snapshot/` is committed so anyone can reproduce every
+  number from this repository alone, as Part 2 commits its snapshot (its §13). The README
+  carries the attribution Football-Data.org requires.
 - **`last_action` in Gold** (L10). Raise it as a Part 1 task if model #3 shows the
   gap to Understat matters; it would also change Gold's contract in Part 2. **Phase 4
   says it does** (§12): the gap is 0.021 log loss and 0.04 AUC, largest in open play and

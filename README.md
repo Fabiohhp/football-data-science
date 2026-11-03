@@ -1,5 +1,7 @@
 # Football ML — what a model can predict, and what it can't
 
+[![CI](https://github.com/Fabiohhp/football-data-science/actions/workflows/ci.yml/badge.svg)](https://github.com/Fabiohhp/football-data-science/actions/workflows/ci.yml)
+
 **Match-result and expected-goals models for the big-5 European leagues, scored on a
 season they never saw, against honest baselines, with every comparison carrying an
 interval — and the tests that make the scores believable.**
@@ -10,13 +12,14 @@ version of those questions.
 
 | Part | Scope | Repository |
 |------|-------|------------|
-| 1 — Data Engineering | Ingestion, Airflow, Bronze/Silver/Gold, data quality | [`football-data-engineering`](../football-data-engineering) |
-| 2 — Analytics & BI | Metrics layer, analyses, dashboard | [`football-data-analytics`](../football-data-analytics) |
+| 1 — Data Engineering | Ingestion, Airflow, Bronze/Silver/Gold, data quality | [`football-data-engineering`](https://github.com/Fabiohhp/football-data-engineering) |
+| 2 — Analytics & BI | Metrics layer, analyses, dashboard | [`football-data-analytics`](https://github.com/Fabiohhp/football-data-analytics) |
 | **3 — Machine Learning** | **Match outcome and xG models, evaluation** | **this repository** |
 
-**You do not need to run anything to read this.** Every number below comes from a
-committed report in [`reports/`](reports), every chart from a committed notebook, and
-CI runs the whole pipeline on synthetic data.
+**You do not need to run anything to read this, and you need only this repository to
+reproduce it.** Every number below comes from a committed report in [`reports/`](reports),
+every chart from a committed notebook, and [`part2_snapshot/`](part2_snapshot) holds the real
+data they were built from. CI also runs the whole pipeline on synthetic data.
 
 ---
 
@@ -203,17 +206,15 @@ src/football_ml ─ walk-forward splits, baselines, models, evaluation
 | Evaluation | own `evaluate.py` | ranked probability score and paired/cluster bootstraps are not in scikit-learn; each is tested against hand-worked values |
 | Experiment tracking | committed model cards and reports | a handful of models, readable on GitHub without a server |
 
-The design brief — every decision and every trap — is [`CLAUDE.md`](CLAUDE.md).
-
 ---
 
 ## Running it
 
-Needs the three repositories side by side and Part 2's marts built.
+Needs only this repository: `dbt build` reads the real Part 2 tables in
+[`part2_snapshot/`](part2_snapshot).
 
 ```bash
 uv sync --extra dev
-(cd ../football-data-analytics && uv run dbt build --project-dir dbt --profiles-dir dbt)
 
 uv run dbt build --project-dir dbt --profiles-dir dbt    # features + leakage tests
 uv run pytest -q                                         # incl. the planted leaks
@@ -226,6 +227,13 @@ uv run jupyter lab                                       # the notebooks read re
 uv run python scripts/export_readme_images.py            # the README's charts, from them
 ```
 
+To build on Part 2 itself, with both repositories side by side:
+
+```bash
+(cd ../football-data-analytics && uv run dbt build --project-dir dbt --profiles-dir dbt)
+PART2_DIR=../football-data-analytics uv run dbt build --project-dir dbt --profiles-dir dbt
+```
+
 Without real data, CI's way: generate a synthetic Part 2 and point the build at it.
 
 ```bash
@@ -233,10 +241,26 @@ uv run python tests/synthetic_part2.py /tmp/part2
 PART2_DIR=/tmp/part2 uv run dbt build --project-dir dbt --profiles-dir dbt
 ```
 
+## CI
+
+Three jobs on GitHub Actions, on every push and pull request and once a week:
+
+- **`build`** needs nothing outside this repository. CI generates a stand-in Part 2 from
+  `contracts/part2_columns.json` with `tests/synthetic_part2.py`, the same generator the
+  tests use, and runs lint, the tests and `dbt build`, with every leakage test, on it. Then
+  it runs `dbt build` on `part2_snapshot/`, the real data a fresh clone builds on.
+- **`part2-integration`** checks Part 2 out beside this repository and builds it on its own
+  fixture, which carries traps the synthetic stand-in does not. This is how a Part 2 change
+  that breaks this repository shows up.
+- **`notebooks`** re-executes the notebooks against the committed reports, then checks that
+  the README's charts are byte for byte the notebooks' figures.
+
 ## Repository map
 
 ```
 contracts/part2_columns.json   every Part 2 column read, with its type
+part2_snapshot/                the real Part 2 tables those columns come from
+scripts/                       refresh that copy; lift the README's charts from the notebooks
 dbt/models/sources/            src_* — thin selects over Part 2
 dbt/models/features/           feat_team_form, feat_match_outcome, feat_shots
 dbt/macros/, dbt/tests/        the leakage test, its coverage guard, grain and recomputation tests
@@ -246,3 +270,20 @@ models/<name>/<version>/       model cards (binaries are rebuilt, not committed)
 notebooks/                     01_match_outcome, 02_shot_xg
 tests/                         unit tests, planted leaks, a synthetic Part 2 generator
 ```
+
+## Data
+
+Football data provided by the Football-Data.org API. Expected-goals, player and shot data come
+from [Understat](https://understat.com/). The data belongs to its providers, under their terms,
+and is not covered by this repository's MIT License.
+
+## Author
+
+Fábio Henrique Peixe ([LinkedIn](https://www.linkedin.com/in/f%C3%A1bio-henrique-peixe/)). Also by
+the author: [`football-scouting`](https://github.com/Fabiohhp/football-scouting), a recruitment
+back-test on StatsBomb event data.
+
+## License
+
+The code is released under the [MIT License](LICENSE). The data belongs to its providers and is
+used under their terms.
