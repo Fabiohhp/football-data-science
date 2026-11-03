@@ -9,11 +9,10 @@ on:
     - cron: "0 6 * * 1"
 
 jobs:
-  # Self-contained: needs nothing outside this repository. This repository's input is
-  # Part 2's analytics.duckdb, which is built from real data and never committed, so
-  # CI generates a stand-in from contracts/part2_columns.json with
-  # tests/synthetic_part2.py — the same generator the tests use — and builds the
-  # features, and every leakage test, on top of it.
+  # Self-contained: needs nothing outside this repository. CI generates a stand-in Part 2
+  # from contracts/part2_columns.json with tests/synthetic_part2.py — the same generator
+  # the tests use — and builds the features, and every leakage test, on top of it. Then it
+  # does the same on part2_snapshot/, the real data a fresh clone builds on.
   build:
     runs-on: ubuntu-latest
     env:
@@ -48,38 +47,25 @@ jobs:
       - name: dbt build (on the synthetic Part 2)
         run: uv run dbt build --project-dir dbt --profiles-dir dbt
 
+      - name: dbt build (on the committed Part 2 snapshot)
+        env:
+          PART2_DIR: part2_snapshot
+        run: uv run dbt build --project-dir dbt --profiles-dir dbt
+
   # The real thing: Part 2 checked out beside this repository and built on its own
   # fixture, which carries the Gold-level traps the synthetic Part 2 does not. It is
   # how a Part 2 change that breaks this repository shows up here.
-  #
-  # Part 2 is private, and a workflow's own token can read only its own repository, so
-  # this needs the PART2_DEPLOY_KEY secret (README.md, "CI"). Without it the job
-  # reports that it was skipped and passes, rather than failing every run.
   part2-integration:
     runs-on: ubuntu-latest
     env:
       GOLD_SNAPSHOT_DIR: tests/fixtures/gold # relative to Part 2's root, in both repos
+      PART2_DIR: ../football-data-analytics
     defaults:
       run:
         working-directory: football-data-science
     steps:
-      - name: Is the Part 2 deploy key configured?
-        id: key
-        working-directory: .
-        env:
-          PART2_DEPLOY_KEY: ${{ secrets.PART2_DEPLOY_KEY }}
-        run: |
-          if [ -n "$PART2_DEPLOY_KEY" ]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::part2-integration skipped: secret PART2_DEPLOY_KEY is not set (README.md, section CI)."
-          fi
-
-      # Both repositories side by side, because every path is relative to the sibling
-      # (CLAUDE.md §1): ../football-data-analytics.
+      # Both repositories side by side, with PART2_DIR aimed at the sibling.
       - name: Check out this repository
-        if: steps.key.outputs.available == 'true'
         uses: actions/checkout@v4
         with:
           path: football-data-science
@@ -87,29 +73,24 @@ jobs:
       # Part 2's default branch, deliberately not pinned: the point is to find out
       # when Part 2 changes under this repository.
       - name: Check out Part 2 beside it
-        if: steps.key.outputs.available == 'true'
         uses: actions/checkout@v4
         with:
           repository: Fabiohhp/football-data-analytics
           path: football-data-analytics
-          ssh-key: ${{ secrets.PART2_DEPLOY_KEY }}
 
       - name: Install uv
-        if: steps.key.outputs.available == 'true'
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
           cache-dependency-glob: "**/uv.lock"
 
       - name: Build Part 2's marts on its fixture
-        if: steps.key.outputs.available == 'true'
         working-directory: football-data-analytics
         run: |
           uv sync
           uv run dbt build --project-dir dbt --profiles-dir dbt
 
       - name: dbt build (on Part 2's fixture)
-        if: steps.key.outputs.available == 'true'
         run: |
           uv sync
           uv run dbt build --project-dir dbt --profiles-dir dbt
