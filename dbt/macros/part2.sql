@@ -9,7 +9,7 @@
 #}
 
 {% macro part2_dir() %}
-    {{ return(env_var('PART2_DIR', '../football-data-analytics')) }}
+    {{ return(env_var('PART2_DIR', 'part2_snapshot')) }}
 {% endmacro %}
 
 {% macro part2_manifest_path() %}

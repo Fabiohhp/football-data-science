@@ -1,0 +1,47 @@
+{
+  "exported_at": "2026-09-20T13:41:36+00:00",
+  "source": "football@localhost:5432/football_dw (gold schema)",
+  "duckdb_version": "1.5.5",
+  "contract": "contracts/gold_columns.json",
+  "match_date_range": {
+    "min": "2024-08-15",
+    "max": "2026-09-19"
+  },
+  "tables": {
+    "dim_players": {
+      "file": "dim_players.parquet",
+      "rows": 5219,
+      "bytes": 88179
+    },
+    "dim_referees": {
+      "file": "dim_referees.parquet",
+      "rows": 159,
+      "bytes": 4073
+    },
+    "dim_stadiums": {
+      "file": "dim_stadiums.parquet",
+      "rows": 120,
+      "bytes": 6336
+    },
+    "dim_teams": {
+      "file": "dim_teams.parquet",
+      "rows": 122,
+      "bytes": 5601
+    },
+    "fact_matches": {
+      "file": "fact_matches.parquet",
+      "rows": 3733,
+      "bytes": 154108
+    },
+    "fact_player_events": {
+      "file": "fact_player_events.parquet",
+      "rows": 115410,
+      "bytes": 1678900
+    },
+    "fact_shots": {
+      "file": "fact_shots.parquet",
+      "rows": 94034,
+      "bytes": 1240331
+    }
+  }
+}

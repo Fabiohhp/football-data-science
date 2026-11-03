@@ -1,8 +1,9 @@
 """A synthetic Part 2 — database and manifest — generated from the column contract.
 
-This repository's only input is Part 2's ``analytics.duckdb``, which is built from
-real data and never committed. CI therefore needs a stand-in, and so do the tests
-that break things on purpose. This module is that stand-in, used by both:
+This repository's only input is Part 2's ``analytics.duckdb``. The real tables ship in
+part2_snapshot/, but the tests that break things on purpose need a database they can
+break, and CI needs one small enough to carry the situations below by construction.
+This module is that stand-in, used by both:
 
     uv run python tests/synthetic_part2.py /tmp/part2     # then PART2_DIR=/tmp/part2
 

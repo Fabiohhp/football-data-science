@@ -65,7 +65,7 @@ def part2_manifest_path() -> Path:
     ``GOLD_SNAPSHOT_DIR`` is Part 2's variable and keeps Part 2's meaning: relative
     to Part 2's root, or absolute.
     """
-    part2 = _repo_path(os.environ.get("PART2_DIR", "../football-data-analytics"))
+    part2 = _repo_path(os.environ.get("PART2_DIR", "part2_snapshot"))
     snapshot = Path(os.environ.get("GOLD_SNAPSHOT_DIR", "data/gold")).expanduser()
     return (snapshot if snapshot.is_absolute() else part2 / snapshot) / "manifest.json"
 

@@ -3,10 +3,10 @@ version: 2
 sources:
   - name: part2
     description: >
-      Part 2's metrics layer (`../football-data-analytics/data/analytics.duckdb`),
-      ATTACHed READ_ONLY by profiles.yml. Its marts and int_ models already handle
-      the Gold traps and are tested there (131 dbt tests); reading them means
-      inheriting those fixes rather than rediscovering them (CLAUDE.md §3).
+      Part 2's metrics layer (`part2_snapshot/data/analytics.duckdb` by default, a
+      Part 2 checkout through PART2_DIR), ATTACHed READ_ONLY by profiles.yml. Its marts
+      and int_ models already handle the Gold traps and are tested there (137 dbt tests);
+      reading them means inheriting those fixes rather than rediscovering them (CLAUDE.md §3).
 
       Every column read from here is listed in `contracts/part2_columns.json`, and
       the build refuses a database that has drifted from it or gone stale against

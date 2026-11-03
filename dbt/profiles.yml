@@ -6,7 +6,9 @@
 #
 # Both paths resolve from the directory dbt is invoked from, which CLAUDE.md §11
 # fixes as the repository root. PART2_DIR is where Part 2 lives; it defaults to the
-# sibling checkout, and the tests point it at a synthetic Part 2 in a temp directory.
+# committed copy in part2_snapshot/, so a clone builds alone. Set it to
+# ../football-data-analytics to read a Part 2 checkout; the tests point it at a
+# synthetic Part 2 in a temp directory.
 football_ml:
   target: dev
   outputs:
@@ -15,6 +17,6 @@ football_ml:
       path: "{{ env_var('FEATURES_DUCKDB', 'data/features.duckdb') }}"
       threads: 4
       attach:
-        - path: "{{ env_var('PART2_DIR', '../football-data-analytics') }}/data/analytics.duckdb"
+        - path: "{{ env_var('PART2_DIR', 'part2_snapshot') }}/data/analytics.duckdb"
           alias: part2
           read_only: true
